@@ -49,38 +49,6 @@ With all values configured, tokens will automatically refresh when expired.
 
 ## Usage
 
-### Docker Compose
-
-```bash
-docker compose up -d
-```
-
-The `docker-compose.yml` file automatically loads environment variables from `config/.env`.
-
-### Local
-
-```bash
-uv sync
-uv run python -m app.main
-```
-
-The server runs on `http://localhost:8000/mcp`.
-
-### Pushing to Docker Hub
-
-Build and push the image:
-
-```bash
-docker compose build
-docker push healthkowshik/whoop-mcp-server:latest
-```
-
-Make sure you're logged in to Docker Hub first:
-
-```bash
-docker login
-```
-
 ### MCP Client Configuration
 
 Add to your MCP client config (e.g., Claude Desktop or Cursor):
@@ -89,11 +57,14 @@ Add to your MCP client config (e.g., Claude Desktop or Cursor):
 {
   "mcpServers": {
     "whoop": {
-      "url": "http://localhost:8000/mcp"
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/whoop-mcp-server", "whoop-mcp"]
     }
   }
 }
 ```
+
+Replace `/path/to/whoop-mcp-server` with the actual path to this repository.
 
 ## Available Tools
 
