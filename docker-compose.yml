@@ -1,6 +1,8 @@
 services:
   whoop-mcp-server:
     build: .
+    image: healthkowshik/whoop-mcp-server
+    container_name: whoop-mcp-server
     ports:
       - "8000:8000"
     env_file:
