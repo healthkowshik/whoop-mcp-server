@@ -51,8 +51,15 @@ Paste your access token in `config/.env`.
 ### Run the server
 
 ```bash
+# Docker
+docker build -t whoop-mcp-server .
+docker run -p 8000:8000 -e WHOOP_ACCESS_TOKEN=your_token whoop-mcp-server
+
+# Or locally
 uv run python -m app.main
 ```
+
+The server runs on `http://localhost:8000/mcp`.
 
 ### Claude Desktop
 
@@ -62,9 +69,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "whoop": {
-      "command": "uv",
-      "args": ["run", "python", "-m", "app.main"],
-      "cwd": "/path/to/whoop-mcp-server"
+      "url": "http://localhost:8000/mcp"
     }
   }
 }

@@ -17,8 +17,9 @@ register_sleep_tools(mcp)
 register_recovery_tools(mcp)
 register_workout_tools(mcp)
 
+
 def main():
-    mcp.run()
+    mcp.run(transport="streamable-http")
 
 
 if __name__ == "__main__":
