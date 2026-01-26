@@ -1,6 +1,7 @@
 from mcp.server.fastmcp import FastMCP
 
 from app.services.whoop_client import WhoopAPIError, client
+from app.utils.timezone import process_response_timestamps
 
 
 def register_workout_tools(mcp: FastMCP):
@@ -24,6 +25,10 @@ def register_workout_tools(mcp: FastMCP):
             has_more: Whether more records exist
             next_token: Token for manual pagination
 
+        Timestamps:
+        - start/end: Time when workout started/ended in the user's timezone at that location
+          (e.g., '2024-01-15 06:30 AM (-08:00)')
+
         Score fields:
         - strain: 0-21 scale
         - kilojoule: Energy expenditure in kJ
@@ -39,7 +44,8 @@ def register_workout_tools(mcp: FastMCP):
                 params["start"] = start
             if end:
                 params["end"] = end
-            return await client.get_paginated("/v2/activity/workout", params, limit)
+            response = await client.get_paginated("/v2/activity/workout", params, limit)
+            return process_response_timestamps(response)
         except WhoopAPIError as e:
             return {"error": e.message, "status_code": e.status_code}
 
@@ -53,6 +59,9 @@ def register_workout_tools(mcp: FastMCP):
         Returns:
             Workout record with scores
 
+        Timestamps:
+        - start/end: Time in user's timezone when workout occurred
+
         Score fields:
         - strain: 0-21 scale
         - kilojoule: Energy in kJ
@@ -63,6 +72,7 @@ def register_workout_tools(mcp: FastMCP):
         - zone_duration: Time in HR zones 0-5 (milliseconds)
         """
         try:
-            return await client.get(f"/v2/activity/workout/{workout_id}")
+            response = await client.get(f"/v2/activity/workout/{workout_id}")
+            return process_response_timestamps(response)
         except WhoopAPIError as e:
             return {"error": e.message, "status_code": e.status_code}

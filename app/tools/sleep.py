@@ -1,6 +1,7 @@
 from mcp.server.fastmcp import FastMCP
 
 from app.services.whoop_client import WhoopAPIError, client
+from app.utils.timezone import process_response_timestamps
 
 
 def register_sleep_tools(mcp: FastMCP):
@@ -24,6 +25,10 @@ def register_sleep_tools(mcp: FastMCP):
             has_more: Whether more records exist
             next_token: Token for manual pagination
 
+        Timestamps:
+        - start/end: Time when sleep started/ended in the user's timezone at that location
+          (e.g., '2024-01-15 10:30 PM (-08:00)')
+
         Units:
         - All durations in milliseconds (convert to hours: ms / 3,600,000)
         - respiratory_rate: breaths per minute
@@ -44,7 +49,8 @@ def register_sleep_tools(mcp: FastMCP):
                 params["start"] = start
             if end:
                 params["end"] = end
-            return await client.get_paginated("/v2/activity/sleep", params, limit)
+            response = await client.get_paginated("/v2/activity/sleep", params, limit)
+            return process_response_timestamps(response)
         except WhoopAPIError as e:
             return {"error": e.message, "status_code": e.status_code}
 
@@ -58,12 +64,16 @@ def register_sleep_tools(mcp: FastMCP):
         Returns:
             Sleep record with stage summary and scores
 
+        Timestamps:
+        - start/end: Time in user's timezone when sleep occurred
+
         Units:
         - All durations in milliseconds
         - respiratory_rate: breaths per minute
         - Percentages: 0-100 scale
         """
         try:
-            return await client.get(f"/v2/activity/sleep/{sleep_id}")
+            response = await client.get(f"/v2/activity/sleep/{sleep_id}")
+            return process_response_timestamps(response)
         except WhoopAPIError as e:
             return {"error": e.message, "status_code": e.status_code}
