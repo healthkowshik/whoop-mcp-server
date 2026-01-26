@@ -30,7 +30,8 @@ def register_cycle_tools(mcp: FastMCP):
         - start/end: Time when cycle started/ended in the user's timezone at that location
           (e.g., '2024-01-15 07:00 AM (-08:00)')
 
-        Units:
+        Metrics:
+        - duration_hours: Duration of the cycle in hours (None if cycle hasn't ended)
         - strain: 0-21 scale
         - kilojoule: energy expenditure in kJ
         - heart_rate: BPM
@@ -60,7 +61,7 @@ def register_cycle_tools(mcp: FastMCP):
             include_recovery: Include recovery data for this cycle
 
         Returns:
-            cycle: Cycle data with scores (start/end in user's timezone when recorded)
+            cycle: Cycle data with scores and duration_hours (start/end in user's timezone when recorded)
             sleep: Primary sleep if include_sleep=True (start/end in user's timezone when recorded)
             recovery: Recovery data if include_recovery=True
 

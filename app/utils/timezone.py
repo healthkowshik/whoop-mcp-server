@@ -62,30 +62,48 @@ def process_record_timestamps(record: dict) -> dict:
 
     Overwrites `start` and `end` with human-readable times in the timezone
     where the user was located when the activity occurred (based on timezone_offset).
+    Also calculates duration_hours if both start and end are present.
 
     Args:
         record: A WHOOP API record dict with start, end, and timezone_offset
 
     Returns:
         The record with timestamps converted to user's timezone at time of recording
+        and duration_hours added if applicable
     """
     tz_offset = record.get("timezone_offset")
-    if not tz_offset:
-        return record
-
-    # Convert start time
+    
+    # Parse datetimes for duration calculation
+    start_dt = None
+    end_dt = None
+    
     if "start" in record and record["start"]:
         start = record["start"]
         if isinstance(start, str):
-            start = datetime.fromisoformat(start.replace("Z", "+00:00"))
-        record["start"] = format_local_datetime(start, tz_offset)
-
-    # Convert end time
+            start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
+        else:
+            start_dt = start
+    
     if "end" in record and record["end"]:
         end = record["end"]
         if isinstance(end, str):
-            end = datetime.fromisoformat(end.replace("Z", "+00:00"))
-        record["end"] = format_local_datetime(end, tz_offset)
+            end_dt = datetime.fromisoformat(end.replace("Z", "+00:00"))
+        else:
+            end_dt = end
+    
+    # Calculate duration_hours if both start and end exist
+    if start_dt and end_dt:
+        delta = end_dt - start_dt
+        record["duration_hours"] = round(delta.total_seconds() / 3600, 2)
+    else:
+        record["duration_hours"] = None
+    
+    # Convert timestamps to formatted strings if timezone_offset is available
+    if tz_offset:
+        if start_dt:
+            record["start"] = format_local_datetime(start_dt, tz_offset)
+        if end_dt:
+            record["end"] = format_local_datetime(end_dt, tz_offset)
 
     return record
 

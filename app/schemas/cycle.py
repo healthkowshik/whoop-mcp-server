@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 
 class CycleScore(BaseModel):
@@ -20,3 +20,12 @@ class Cycle(BaseModel):
     score: CycleScore | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+    @computed_field
+    @property
+    def duration_hours(self) -> float | None:
+        """Duration of the cycle in hours (rounded to 2 decimal places). Returns None if cycle hasn't ended."""
+        if self.end is None:
+            return None
+        delta = self.end - self.start
+        return round(delta.total_seconds() / 3600, 2)

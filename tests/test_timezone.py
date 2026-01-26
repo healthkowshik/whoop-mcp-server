@@ -70,6 +70,55 @@ class TestProcessRecordTimestamps:
         assert "10:30 AM" in result["start"]
         assert "06:30 PM" in result["end"]
 
+    def test_calculates_duration_hours(self):
+        record = {
+            "id": "123",
+            "start": "2024-01-15T18:30:00Z",
+            "end": "2024-01-16T02:30:00Z",
+            "timezone_offset": "-08:00",
+        }
+        result = process_record_timestamps(record)
+        # 8 hours difference (18:30 to 02:30 next day)
+        assert result["duration_hours"] == 8.0
+
+    def test_duration_hours_without_offset(self):
+        record = {
+            "id": "123",
+            "start": "2024-01-15T18:30:00Z",
+            "end": "2024-01-16T02:30:00Z",
+        }
+        result = process_record_timestamps(record)
+        assert result["duration_hours"] == 8.0
+
+    def test_duration_hours_rounds_to_2_decimal_places(self):
+        # 8 hours, 15 minutes, 30 seconds = 8.258333... hours
+        record = {
+            "id": "123",
+            "start": "2024-01-15T18:30:00Z",
+            "end": "2024-01-16T02:45:30Z",
+            "timezone_offset": "-08:00",
+        }
+        result = process_record_timestamps(record)
+        assert result["duration_hours"] == 8.26
+
+    def test_duration_hours_none_when_end_missing(self):
+        record = {
+            "id": "123",
+            "start": "2024-01-15T18:30:00Z",
+            "timezone_offset": "-08:00",
+        }
+        result = process_record_timestamps(record)
+        assert result["duration_hours"] is None
+
+    def test_duration_hours_none_when_start_missing(self):
+        record = {
+            "id": "123",
+            "end": "2024-01-16T02:30:00Z",
+            "timezone_offset": "-08:00",
+        }
+        result = process_record_timestamps(record)
+        assert result["duration_hours"] is None
+
     def test_no_offset_preserves_original(self):
         record = {
             "id": "123",
@@ -79,6 +128,7 @@ class TestProcessRecordTimestamps:
         result = process_record_timestamps(record)
         assert result["start"] == "2024-01-15T18:30:00Z"
         assert result["end"] == "2024-01-16T02:30:00Z"
+        assert result["duration_hours"] == 8.0
 
 
 class TestProcessResponseTimestamps:
