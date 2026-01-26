@@ -10,15 +10,6 @@ A Model Context Protocol (MCP) server for accessing WHOOP wearable health data.
 - **Recovery**: Daily recovery scores with HRV, RHR, SpO2, and skin temperature
 - **Workouts**: Activity data with strain, heart rate zones, and distance
 
-## Installation
-
-```bash
-# Clone and install
-git clone https://github.com/healthkowshik/whoop-mcp-server.git
-cd whoop-mcp-server
-uv sync
-```
-
 ## Setup
 
 ### 1. Create a WHOOP Developer App
@@ -28,13 +19,13 @@ uv sync
 3. Add redirect URI: `http://localhost:8888/callback`
 4. Note your **Client ID** and **Client Secret**
 
-### 2. Get Your Access Token
+### 2. Get Your Tokens
 
 ```bash
 uv run python scripts/get_token.py
 ```
 
-This opens your browser for WHOOP authorization and outputs the access token.
+This opens your browser for WHOOP authorization and outputs all required tokens.
 
 ### 3. Configure
 
@@ -42,28 +33,43 @@ This opens your browser for WHOOP authorization and outputs the access token.
 cp config/.env.example config/.env
 ```
 
-Paste your access token in `config/.env`.
+Add the values from step 2 to `config/.env`:
 
-> **Note:** WHOOP tokens expire. Re-run `scripts/get_token.py` when you get 401 errors.
+```bash
+WHOOP_ACCESS_TOKEN=<access_token>
+WHOOP_CLIENT_ID=<client_id>
+WHOOP_CLIENT_SECRET=<client_secret>
+WHOOP_REFRESH_TOKEN=<refresh_token>
+```
+
+With all values configured, tokens will automatically refresh when expired.
 
 ## Usage
 
-### Run the server
+### Docker
 
 ```bash
-# Docker
 docker build -t whoop-mcp-server .
-docker run -p 8000:8000 -e WHOOP_ACCESS_TOKEN=your_token whoop-mcp-server
+docker run -p 8000:8000 \
+  -e WHOOP_ACCESS_TOKEN=... \
+  -e WHOOP_CLIENT_ID=... \
+  -e WHOOP_CLIENT_SECRET=... \
+  -e WHOOP_REFRESH_TOKEN=... \
+  whoop-mcp-server
+```
 
-# Or locally
+### Local
+
+```bash
+uv sync
 uv run python -m app.main
 ```
 
 The server runs on `http://localhost:8000/mcp`.
 
-### Claude Desktop
+### MCP Client Configuration
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+Add to your MCP client config (e.g., Claude Desktop or Cursor):
 
 ```json
 {
@@ -81,7 +87,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 |------|-------------|
 | `get_user()` | Get user profile and body measurements |
 | `get_cycles(start, end, limit)` | Get physiological cycles |
-| `get_cycle(cycle_id, include_sleep, include_recovery)` | Get single cycle with optional related data |
+| `get_cycle(cycle_id)` | Get single cycle with sleep and recovery |
 | `get_sleeps(start, end, limit)` | Get sleep sessions |
 | `get_sleep(sleep_id)` | Get single sleep session |
 | `get_recoveries(start, end, limit)` | Get recovery records |
@@ -91,13 +97,13 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ## Data Units
 
-- **Durations**: Milliseconds (convert to hours: `ms / 3,600,000`)
+- **Durations**: Milliseconds
 - **Timestamps**: ISO 8601 with timezone
 - **Heart Rates**: BPM
 - **Strain**: 0-21 scale
 - **Percentages**: 0-100 scale
 - **Distances**: Meters
-- **Energy**: Kilojoules (kJ)
+- **Energy**: Kilojoules
 - **Temperature**: Celsius
 
 ## License

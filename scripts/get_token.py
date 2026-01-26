@@ -115,12 +115,14 @@ def main():
     print("SUCCESS! Add this to config/.env:")
     print("=" * 50)
     print(f"\nWHOOP_ACCESS_TOKEN={tokens['access_token']}")
+    print(f"WHOOP_CLIENT_ID={client_id}")
+    print(f"WHOOP_CLIENT_SECRET={client_secret}")
 
     if "refresh_token" in tokens:
-        print(f"\n# Refresh token (save for later):")
-        print(f"# WHOOP_REFRESH_TOKEN={tokens['refresh_token']}")
+        print(f"WHOOP_REFRESH_TOKEN={tokens['refresh_token']}")
 
     print(f"\n# Token expires in {tokens.get('expires_in', 'unknown')} seconds")
+    print("# With refresh token configured, tokens will auto-refresh on expiry")
 
 
 if __name__ == "__main__":
