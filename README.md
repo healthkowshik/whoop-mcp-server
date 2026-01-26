@@ -49,17 +49,13 @@ With all values configured, tokens will automatically refresh when expired.
 
 ## Usage
 
-### Docker
+### Docker Compose
 
 ```bash
-docker build -t whoop-mcp-server .
-docker run -p 8000:8000 \
-  -e WHOOP_ACCESS_TOKEN=... \
-  -e WHOOP_CLIENT_ID=... \
-  -e WHOOP_CLIENT_SECRET=... \
-  -e WHOOP_REFRESH_TOKEN=... \
-  whoop-mcp-server
+docker compose up -d
 ```
+
+The `docker-compose.yml` file automatically loads environment variables from `config/.env`.
 
 ### Local
 
