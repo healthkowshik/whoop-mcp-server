@@ -66,6 +66,21 @@ uv run python -m app.main
 
 The server runs on `http://localhost:8000/mcp`.
 
+### Pushing to Docker Hub
+
+Build and push the image:
+
+```bash
+docker compose build
+docker push healthkowshik/whoop-mcp-server:latest
+```
+
+Make sure you're logged in to Docker Hub first:
+
+```bash
+docker login
+```
+
 ### MCP Client Configuration
 
 Add to your MCP client config (e.g., Claude Desktop or Cursor):
