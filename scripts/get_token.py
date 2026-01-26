@@ -4,7 +4,8 @@
 import secrets
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import parse_qs, urlencode, urlparse
+from pathlib import Path
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import httpx
 
@@ -12,15 +13,16 @@ AUTH_URL = "https://api.prod.whoop.com/oauth/oauth2/auth"
 TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token"
 REDIRECT_PORT = 8888
 REDIRECT_URI = f"http://localhost:{REDIRECT_PORT}/callback"
+CONFIG_DIR = Path(__file__).parent.parent / "config"
 
 SCOPES = [
+    "offline",
     "read:profile",
     "read:body_measurement",
     "read:cycles",
     "read:recovery",
     "read:sleep",
     "read:workout",
-    "offline",
 ]
 
 
@@ -48,14 +50,14 @@ class CallbackHandler(BaseHTTPRequestHandler):
 
 def get_authorization_code(client_id: str) -> str | None:
     state = secrets.token_urlsafe(16)
+    scope = quote(" ".join(SCOPES))
     params = {
         "client_id": client_id,
         "redirect_uri": REDIRECT_URI,
         "response_type": "code",
-        "scope": " ".join(SCOPES),
         "state": state,
     }
-    auth_url = f"{AUTH_URL}?{urlencode(params)}"
+    auth_url = f"{AUTH_URL}?{urlencode(params)}&scope={scope}"
 
     print(f"\nOpening browser for WHOOP authorization...")
     print(f"If browser doesn't open, visit:\n{auth_url}\n")
@@ -83,21 +85,47 @@ def exchange_code_for_token(client_id: str, client_secret: str, code: str) -> di
     return response.json()
 
 
+def load_credentials_from_env() -> tuple[str, str]:
+    """Load client credentials from config/.env if available."""
+    env_file = CONFIG_DIR / ".env"
+    client_id = ""
+    client_secret = ""
+
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if line.startswith("WHOOP_CLIENT_ID="):
+                client_id = line.split("=", 1)[1].strip()
+            elif line.startswith("WHOOP_CLIENT_SECRET="):
+                client_secret = line.split("=", 1)[1].strip()
+
+    return client_id, client_secret
+
+
 def main():
     print("=" * 50)
     print("WHOOP OAuth Token Generator")
     print("=" * 50)
-    print("\nPrerequisites:")
-    print("1. Create an app at https://developer-dashboard.whoop.com")
-    print(f"2. Add redirect URI: {REDIRECT_URI}")
-    print()
 
-    client_id = input("Enter your Client ID: ").strip()
-    client_secret = input("Enter your Client Secret: ").strip()
+    # Try loading from .env first
+    client_id, client_secret = load_credentials_from_env()
 
-    if not client_id or not client_secret:
-        print("Error: Client ID and Secret are required")
-        return
+    if client_id and client_secret:
+        print(f"\nUsing credentials from config/.env")
+    else:
+        print("\nPrerequisites:")
+        print("1. Create an app at https://developer-dashboard.whoop.com")
+        print(f"2. Add redirect URI: {REDIRECT_URI}")
+        print()
+
+        if not client_id:
+            client_id = input("Enter your Client ID: ").strip()
+        if not client_secret:
+            client_secret = input("Enter your Client Secret: ").strip()
+
+        if not client_id or not client_secret:
+            print("Error: Client ID and Secret are required")
+            return
 
     code = get_authorization_code(client_id)
     if not code:

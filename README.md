@@ -19,26 +19,29 @@ A Model Context Protocol (MCP) server for accessing WHOOP wearable health data.
 3. Add redirect URI: `http://localhost:8888/callback`
 4. Note your **Client ID** and **Client Secret**
 
-### 2. Get Your Tokens
-
-```bash
-uv run python scripts/get_token.py
-```
-
-This opens your browser for WHOOP authorization and outputs all required tokens.
-
-### 3. Configure
+### 2. Configure Credentials
 
 ```bash
 cp config/.env.example config/.env
 ```
 
-Add the values from step 2 to `config/.env`:
+Add your client credentials to `config/.env`:
+
+```bash
+WHOOP_CLIENT_ID=<client_id>
+WHOOP_CLIENT_SECRET=<client_secret>
+```
+
+### 3. Get Your Tokens
+
+```bash
+uv run python scripts/get_token.py
+```
+
+The script reads credentials from `config/.env` and opens your browser for WHOOP authorization. After authorization, copy the output tokens to `config/.env`:
 
 ```bash
 WHOOP_ACCESS_TOKEN=<access_token>
-WHOOP_CLIENT_ID=<client_id>
-WHOOP_CLIENT_SECRET=<client_secret>
 WHOOP_REFRESH_TOKEN=<refresh_token>
 ```
 
