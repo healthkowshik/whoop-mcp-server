@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 
 class ZoneDuration(BaseModel):
@@ -35,3 +35,24 @@ class Workout(BaseModel):
     score: WorkoutScore | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+    @computed_field
+    @property
+    def date(self) -> date:
+        """Date of the workout (based on end time, falls back to start if ongoing)."""
+        dt = self.end if self.end is not None else self.start
+        return dt.date()
+
+    @computed_field
+    @property
+    def weekday(self) -> str:
+        """Day of week for the workout (e.g., 'Monday', 'Tuesday'). Based on end time, falls back to start if ongoing."""
+        dt = self.end if self.end is not None else self.start
+        return dt.strftime("%A")
+
+    @computed_field
+    @property
+    def is_weekend(self) -> bool:
+        """Whether the workout falls on a weekend (Saturday or Sunday). Based on end time, falls back to start if ongoing."""
+        dt = self.end if self.end is not None else self.start
+        return dt.weekday() >= 5

@@ -42,6 +42,11 @@ def register_sleep_tools(mcp: FastMCP):
         - total_rem_sleep_time_milli
         - sleep_cycle_count
         - disturbance_count
+
+        Computed fields (based on end/wake time, falls back to start if ongoing):
+        - date: Date string (YYYY-MM-DD)
+        - weekday: Day of week (e.g., 'Monday', 'Tuesday')
+        - is_weekend: Boolean, True if Saturday or Sunday
         """
         try:
             params = {}

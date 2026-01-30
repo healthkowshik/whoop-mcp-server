@@ -37,6 +37,11 @@ def register_workout_tools(mcp: FastMCP):
         - distance_meter: Distance in meters
         - altitude_gain_meter: Elevation gain in meters
         - zone_duration: Time in each HR zone (milliseconds)
+
+        Computed fields (based on end time, falls back to start if ongoing):
+        - date: Date string (YYYY-MM-DD)
+        - weekday: Day of week (e.g., 'Monday', 'Tuesday')
+        - is_weekend: Boolean, True if Saturday or Sunday
         """
         try:
             params = {}

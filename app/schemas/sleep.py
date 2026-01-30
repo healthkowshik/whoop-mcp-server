@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 
 class StageSummary(BaseModel):
@@ -34,3 +34,24 @@ class Sleep(BaseModel):
     score: SleepScore | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+    @computed_field
+    @property
+    def date(self) -> date:
+        """Date of the sleep (based on end/wake time, falls back to start if ongoing)."""
+        dt = self.end if self.end is not None else self.start
+        return dt.date()
+
+    @computed_field
+    @property
+    def weekday(self) -> str:
+        """Day of week for the sleep (e.g., 'Monday', 'Tuesday'). Based on end/wake time, falls back to start if ongoing."""
+        dt = self.end if self.end is not None else self.start
+        return dt.strftime("%A")
+
+    @computed_field
+    @property
+    def is_weekend(self) -> bool:
+        """Whether the sleep falls on a weekend (Saturday or Sunday). Based on end/wake time, falls back to start if ongoing."""
+        dt = self.end if self.end is not None else self.start
+        return dt.weekday() >= 5

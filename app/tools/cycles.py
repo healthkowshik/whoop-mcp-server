@@ -35,6 +35,11 @@ def register_cycle_tools(mcp: FastMCP):
         - strain: 0-21 scale
         - kilojoule: energy expenditure in kJ
         - heart_rate: BPM
+
+        Computed fields (based on end time, falls back to start if ongoing):
+        - date: Date string (YYYY-MM-DD)
+        - weekday: Day of week (e.g., 'Monday', 'Tuesday')
+        - is_weekend: Boolean, True if Saturday or Sunday
         """
         try:
             params = {}

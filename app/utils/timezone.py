@@ -62,14 +62,18 @@ def process_record_timestamps(record: dict) -> dict:
 
     Overwrites `start` and `end` with human-readable times in the timezone
     where the user was located when the activity occurred (based on timezone_offset).
-    Also calculates duration_hours if both start and end are present.
+
+    Adds computed fields:
+    - duration_hours: Duration in hours (None if end is missing)
+    - date: Date string (YYYY-MM-DD) based on end time, falls back to start
+    - weekday: Day of week (e.g., 'Monday') based on end time, falls back to start
+    - is_weekend: Boolean, True if Saturday or Sunday
 
     Args:
         record: A WHOOP API record dict with start, end, and timezone_offset
 
     Returns:
-        The record with timestamps converted to user's timezone at time of recording
-        and duration_hours added if applicable
+        The record with timestamps converted and computed fields added
     """
     tz_offset = record.get("timezone_offset")
     
@@ -97,7 +101,17 @@ def process_record_timestamps(record: dict) -> dict:
         record["duration_hours"] = round(delta.total_seconds() / 3600, 2)
     else:
         record["duration_hours"] = None
-    
+
+    # Calculate date, weekday, is_weekend based on end time (fallback to start)
+    reference_dt = end_dt if end_dt else start_dt
+    if reference_dt:
+        # Convert to local time for accurate date/weekday
+        if tz_offset:
+            reference_dt = convert_to_local_time(reference_dt, tz_offset)
+        record["date"] = reference_dt.strftime("%Y-%m-%d")
+        record["weekday"] = reference_dt.strftime("%A")
+        record["is_weekend"] = reference_dt.weekday() >= 5
+
     # Convert timestamps to formatted strings if timezone_offset is available
     if tz_offset:
         if start_dt:
