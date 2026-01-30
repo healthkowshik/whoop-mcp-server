@@ -1,3 +1,3 @@
-from app.utils.timezone import process_record_timestamps, process_response_timestamps
+from app.utils.timezone import preprocess_response, preprocess_timestamps
 
-__all__ = ["process_record_timestamps", "process_response_timestamps"]
+__all__ = ["preprocess_response", "preprocess_timestamps"]

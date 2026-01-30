@@ -1,7 +1,8 @@
 from mcp.server.fastmcp import FastMCP
 
+from app.schemas.cycle import Cycle
 from app.services.whoop_client import WhoopAPIError, client
-from app.utils.timezone import process_record_timestamps, process_response_timestamps
+from app.utils.timezone import preprocess_response, preprocess_timestamps
 
 
 def register_cycle_tools(mcp: FastMCP):
@@ -48,7 +49,13 @@ def register_cycle_tools(mcp: FastMCP):
             if end:
                 params["end"] = end
             response = await client.get_paginated("/v2/cycle", params, limit)
-            return process_response_timestamps(response)
+            response = preprocess_response(response)
+
+            # Parse records through Pydantic models
+            response["records"] = [
+                Cycle(**record).model_dump() for record in response["records"]
+            ]
+            return response
         except WhoopAPIError as e:
             return {"error": e.message, "status_code": e.status_code}
 
@@ -75,22 +82,32 @@ def register_cycle_tools(mcp: FastMCP):
         """
         try:
             cycle = await client.get(f"/v2/cycle/{cycle_id}")
-            result = {"cycle": process_record_timestamps(cycle)}
+            cycle = preprocess_timestamps(cycle)
+            result = {"cycle": Cycle(**cycle).model_dump()}
+
             if include_sleep:
                 try:
+                    from app.schemas.sleep import Sleep
+
                     sleep = await client.get(f"/v2/cycle/{cycle_id}/sleep")
-                    result["sleep"] = process_record_timestamps(sleep)
+                    sleep = preprocess_timestamps(sleep)
+                    result["sleep"] = Sleep(**sleep).model_dump()
                 except WhoopAPIError as e:
                     if e.status_code != 404:
                         raise
                     result["sleep"] = None
+
             if include_recovery:
                 try:
-                    result["recovery"] = await client.get(f"/v2/cycle/{cycle_id}/recovery")
+                    from app.schemas.recovery import Recovery
+
+                    recovery = await client.get(f"/v2/cycle/{cycle_id}/recovery")
+                    result["recovery"] = Recovery(**recovery).model_dump()
                 except WhoopAPIError as e:
                     if e.status_code != 404:
                         raise
                     result["recovery"] = None
+
             return result
         except WhoopAPIError as e:
             return {"error": e.message, "status_code": e.status_code}

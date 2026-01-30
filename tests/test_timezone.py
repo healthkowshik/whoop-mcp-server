@@ -7,9 +7,8 @@ import pytest
 from app.utils.timezone import (
     parse_timezone_offset,
     convert_to_local_time,
-    format_local_datetime,
-    process_record_timestamps,
-    process_response_timestamps,
+    preprocess_timestamps,
+    preprocess_response,
 )
 
 
@@ -29,109 +28,88 @@ class TestParseTimezoneOffset:
 
 class TestConvertToLocalTime:
     def test_convert_utc_to_pacific(self):
-        dt = datetime(2024, 1, 15, 18, 30, 0, tzinfo=timezone.utc)
-        local_dt = convert_to_local_time(dt, "-08:00")
+        local_dt = convert_to_local_time("2024-01-15T18:30:00Z", "-08:00")
         assert local_dt.hour == 10
         assert local_dt.minute == 30
 
-    def test_convert_naive_datetime(self):
-        # Naive datetime should be assumed UTC
-        dt = datetime(2024, 1, 15, 18, 30, 0)
-        local_dt = convert_to_local_time(dt, "-08:00")
-        assert local_dt.hour == 10
+    def test_convert_utc_to_india(self):
+        local_dt = convert_to_local_time("2024-01-15T18:30:00Z", "+05:30")
+        # 18:30 UTC + 5:30 = 00:00 next day
+        assert local_dt.hour == 0
+        assert local_dt.minute == 0
+        assert local_dt.day == 16
 
-    def test_no_offset_returns_original(self):
-        dt = datetime(2024, 1, 15, 18, 30, 0)
-        result = convert_to_local_time(dt, None)
-        assert result == dt
-
-
-class TestFormatLocalDatetime:
-    def test_format_with_offset(self):
-        dt = datetime(2024, 1, 15, 18, 30, 0, tzinfo=timezone.utc)
-        result = format_local_datetime(dt, "-08:00")
-        assert result == "2024-01-15 10:30 AM (-08:00)"
-
-    def test_format_without_offset(self):
-        dt = datetime(2024, 1, 15, 18, 30, 0, tzinfo=timezone.utc)
-        result = format_local_datetime(dt, None)
-        assert "2024-01-15" in result
+    def test_no_offset_returns_utc(self):
+        result = convert_to_local_time("2024-01-15T18:30:00Z", None)
+        assert result.hour == 18
+        assert result.minute == 30
 
 
-class TestProcessRecordTimestamps:
-    def test_converts_to_local_times(self):
+class TestPreprocessTimestamps:
+    def test_converts_to_local_datetime_objects(self):
         record = {
             "id": "123",
             "start": "2024-01-15T18:30:00Z",
             "end": "2024-01-16T02:30:00Z",
             "timezone_offset": "-08:00",
         }
-        result = process_record_timestamps(record)
-        assert "10:30 AM" in result["start"]
-        assert "06:30 PM" in result["end"]
+        result = preprocess_timestamps(record)
+        # Should be datetime objects, not strings
+        assert isinstance(result["start"], datetime)
+        assert isinstance(result["end"], datetime)
+        # Converted to local time
+        assert result["start"].hour == 10  # 18:30 UTC - 8 hours
+        assert result["end"].hour == 18    # 02:30 UTC - 8 hours (previous day)
 
-    def test_calculates_duration_hours(self):
-        record = {
-            "id": "123",
-            "start": "2024-01-15T18:30:00Z",
-            "end": "2024-01-16T02:30:00Z",
-            "timezone_offset": "-08:00",
-        }
-        result = process_record_timestamps(record)
-        # 8 hours difference (18:30 to 02:30 next day)
-        assert result["duration_hours"] == 8.0
-
-    def test_duration_hours_without_offset(self):
-        record = {
-            "id": "123",
-            "start": "2024-01-15T18:30:00Z",
-            "end": "2024-01-16T02:30:00Z",
-        }
-        result = process_record_timestamps(record)
-        assert result["duration_hours"] == 8.0
-
-    def test_duration_hours_rounds_to_2_decimal_places(self):
-        # 8 hours, 15 minutes, 30 seconds = 8.258333... hours
-        record = {
-            "id": "123",
-            "start": "2024-01-15T18:30:00Z",
-            "end": "2024-01-16T02:45:30Z",
-            "timezone_offset": "-08:00",
-        }
-        result = process_record_timestamps(record)
-        assert result["duration_hours"] == 8.26
-
-    def test_duration_hours_none_when_end_missing(self):
+    def test_handles_missing_end(self):
         record = {
             "id": "123",
             "start": "2024-01-15T18:30:00Z",
             "timezone_offset": "-08:00",
         }
-        result = process_record_timestamps(record)
-        assert result["duration_hours"] is None
+        result = preprocess_timestamps(record)
+        assert isinstance(result["start"], datetime)
+        assert "end" not in result
 
-    def test_duration_hours_none_when_start_missing(self):
+    def test_handles_null_end(self):
         record = {
             "id": "123",
-            "end": "2024-01-16T02:30:00Z",
+            "start": "2024-01-15T18:30:00Z",
+            "end": None,
             "timezone_offset": "-08:00",
         }
-        result = process_record_timestamps(record)
-        assert result["duration_hours"] is None
+        result = preprocess_timestamps(record)
+        assert isinstance(result["start"], datetime)
+        assert result["end"] is None
 
-    def test_no_offset_preserves_original(self):
+    def test_no_offset_still_parses_datetime(self):
         record = {
             "id": "123",
             "start": "2024-01-15T18:30:00Z",
             "end": "2024-01-16T02:30:00Z",
         }
-        result = process_record_timestamps(record)
-        assert result["start"] == "2024-01-15T18:30:00Z"
-        assert result["end"] == "2024-01-16T02:30:00Z"
-        assert result["duration_hours"] == 8.0
+        result = preprocess_timestamps(record)
+        assert isinstance(result["start"], datetime)
+        assert isinstance(result["end"], datetime)
+        # Should remain in UTC
+        assert result["start"].hour == 18
+        assert result["end"].hour == 2
+
+    def test_preserves_other_fields(self):
+        record = {
+            "id": "123",
+            "start": "2024-01-15T18:30:00Z",
+            "timezone_offset": "-08:00",
+            "score_state": "SCORED",
+            "score": {"strain": 10.5},
+        }
+        result = preprocess_timestamps(record)
+        assert result["id"] == "123"
+        assert result["score_state"] == "SCORED"
+        assert result["score"] == {"strain": 10.5}
 
 
-class TestProcessResponseTimestamps:
+class TestPreprocessResponse:
     def test_processes_paginated_response(self):
         response = {
             "records": [
@@ -150,9 +128,14 @@ class TestProcessResponseTimestamps:
             ],
             "has_more": False,
         }
-        result = process_response_timestamps(response)
-        assert "(-08:00)" in result["records"][0]["start"]
-        assert "(+05:30)" in result["records"][1]["start"]
+        result = preprocess_response(response)
+        assert isinstance(result["records"][0]["start"], datetime)
+        assert isinstance(result["records"][1]["start"], datetime)
+        # First record: 18:30 UTC - 8 hours = 10:30 local
+        assert result["records"][0]["start"].hour == 10
+        # Second record: 19:00 UTC + 5:30 = 00:30 next day local
+        assert result["records"][1]["start"].hour == 0
+        assert result["records"][1]["start"].minute == 30
 
     def test_processes_single_record(self):
         response = {
@@ -161,10 +144,11 @@ class TestProcessResponseTimestamps:
             "end": "2024-01-16T02:30:00Z",
             "timezone_offset": "-08:00",
         }
-        result = process_response_timestamps(response)
-        assert "10:30 AM" in result["start"]
+        result = preprocess_response(response)
+        assert isinstance(result["start"], datetime)
+        assert result["start"].hour == 10
 
     def test_skips_error_response(self):
         response = {"error": "Not found", "status_code": 404}
-        result = process_response_timestamps(response)
+        result = preprocess_response(response)
         assert result == response

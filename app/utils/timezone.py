@@ -1,6 +1,6 @@
 """Timezone utilities for converting WHOOP API timestamps.
 
-Converts UTC timestamps to the user's timezone when the event was recorded.
+Converts UTC timestamps to the user's local timezone when the event was recorded.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -20,123 +20,66 @@ def parse_timezone_offset(offset_str: str) -> timezone:
     return timezone(timedelta(hours=sign * hours, minutes=sign * minutes))
 
 
-def convert_to_local_time(dt: datetime, timezone_offset: str | None) -> datetime:
-    """Convert a UTC datetime to the timezone where the event was recorded.
+def convert_to_local_time(iso_string: str, timezone_offset: str | None) -> datetime:
+    """Convert an ISO datetime string to the user's local timezone.
 
     Args:
-        dt: A datetime object (assumed UTC if naive)
-        timezone_offset: WHOOP timezone offset string (e.g., '-08:00')
+        iso_string: ISO 8601 datetime string (e.g., '2024-01-08T17:30:00Z')
+        timezone_offset: WHOOP timezone offset string (e.g., '+05:30')
 
     Returns:
-        Datetime converted to the user's timezone at time of recording
+        Datetime in the user's local timezone
     """
+    # Parse ISO string to datetime
+    dt = datetime.fromisoformat(iso_string.replace("Z", "+00:00"))
+
     if not timezone_offset:
         return dt
 
-    # Ensure the datetime is timezone-aware (assume UTC if naive)
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-
+    # Convert to local timezone
     tz = parse_timezone_offset(timezone_offset)
     return dt.astimezone(tz)
 
 
-def format_local_datetime(dt: datetime, timezone_offset: str | None) -> str:
-    """Format a datetime for display in the timezone where the event was recorded.
+def preprocess_timestamps(record: dict) -> dict:
+    """Convert ISO timestamp strings to local datetime objects.
+
+    Converts 'start', 'end', 'created_at', 'updated_at' fields from ISO strings
+    to datetime objects in the user's local timezone (based on timezone_offset).
 
     Args:
-        dt: A datetime object (assumed UTC if naive)
-        timezone_offset: WHOOP timezone offset string (e.g., '-08:00')
+        record: A WHOOP API record dict with timestamp fields
 
     Returns:
-        Formatted string like '2024-01-15 10:30 PM (-08:00)'
-    """
-    if timezone_offset:
-        local_dt = convert_to_local_time(dt, timezone_offset)
-        return f"{local_dt.strftime('%Y-%m-%d %I:%M %p')} ({timezone_offset})"
-    return dt.isoformat()
-
-
-def process_record_timestamps(record: dict) -> dict:
-    """Convert timestamps to the user's timezone when the event was recorded.
-
-    Overwrites `start` and `end` with human-readable times in the timezone
-    where the user was located when the activity occurred (based on timezone_offset).
-
-    Adds computed fields:
-    - duration_hours: Duration in hours (None if end is missing)
-    - date: Date string (YYYY-MM-DD) based on end time, falls back to start
-    - weekday: Day of week (e.g., 'Monday') based on end time, falls back to start
-    - is_weekend: Boolean, True if Saturday or Sunday
-
-    Args:
-        record: A WHOOP API record dict with start, end, and timezone_offset
-
-    Returns:
-        The record with timestamps converted and computed fields added
+        The record with timestamp strings converted to local datetime objects
     """
     tz_offset = record.get("timezone_offset")
-    
-    # Parse datetimes for duration calculation
-    start_dt = None
-    end_dt = None
-    
-    if "start" in record and record["start"]:
-        start = record["start"]
-        if isinstance(start, str):
-            start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
-        else:
-            start_dt = start
-    
-    if "end" in record and record["end"]:
-        end = record["end"]
-        if isinstance(end, str):
-            end_dt = datetime.fromisoformat(end.replace("Z", "+00:00"))
-        else:
-            end_dt = end
-    
-    # Calculate duration_hours if both start and end exist
-    if start_dt and end_dt:
-        delta = end_dt - start_dt
-        record["duration_hours"] = round(delta.total_seconds() / 3600, 2)
-    else:
-        record["duration_hours"] = None
+    timestamp_fields = ["start", "end", "created_at", "updated_at"]
 
-    # Calculate date, weekday, is_weekend based on end time (fallback to start)
-    reference_dt = end_dt if end_dt else start_dt
-    if reference_dt:
-        # Convert to local time for accurate date/weekday
-        if tz_offset:
-            reference_dt = convert_to_local_time(reference_dt, tz_offset)
-        record["date"] = reference_dt.strftime("%Y-%m-%d")
-        record["weekday"] = reference_dt.strftime("%A")
-        record["is_weekend"] = reference_dt.weekday() >= 5
-
-    # Convert timestamps to formatted strings if timezone_offset is available
-    if tz_offset:
-        if start_dt:
-            record["start"] = format_local_datetime(start_dt, tz_offset)
-        if end_dt:
-            record["end"] = format_local_datetime(end_dt, tz_offset)
+    for field in timestamp_fields:
+        if field in record and record[field] is not None:
+            value = record[field]
+            if isinstance(value, str):
+                record[field] = convert_to_local_time(value, tz_offset)
 
     return record
 
 
-def process_response_timestamps(response: dict) -> dict:
-    """Convert timestamps in a paginated API response to user's timezone when recorded.
+def preprocess_response(response: dict) -> dict:
+    """Convert timestamps in a paginated API response.
 
     Args:
-        response: A WHOOP API response with 'records' list
+        response: A WHOOP API response with 'records' list or single record
 
     Returns:
-        The response with timestamps converted to user's timezone at time of recording
+        The response with timestamp strings converted to local datetime objects
     """
     if "records" in response and isinstance(response["records"], list):
         response["records"] = [
-            process_record_timestamps(record) for record in response["records"]
+            preprocess_timestamps(record) for record in response["records"]
         ]
     elif "error" not in response:
         # Single record response
-        response = process_record_timestamps(response)
+        response = preprocess_timestamps(response)
 
     return response

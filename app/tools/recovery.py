@@ -1,5 +1,6 @@
 from mcp.server.fastmcp import FastMCP
 
+from app.schemas.recovery import Recovery
 from app.services.whoop_client import WhoopAPIError, client
 
 
@@ -38,7 +39,13 @@ def register_recovery_tools(mcp: FastMCP):
                 params["start"] = start
             if end:
                 params["end"] = end
-            return await client.get_paginated("/v2/recovery", params, limit)
+            response = await client.get_paginated("/v2/recovery", params, limit)
+
+            # Parse records through Pydantic models
+            response["records"] = [
+                Recovery(**record).model_dump() for record in response["records"]
+            ]
+            return response
         except WhoopAPIError as e:
             return {"error": e.message, "status_code": e.status_code}
 
@@ -61,6 +68,7 @@ def register_recovery_tools(mcp: FastMCP):
         - user_calibrating: Whether user is still in calibration period
         """
         try:
-            return await client.get(f"/v2/cycle/{cycle_id}/recovery")
+            response = await client.get(f"/v2/cycle/{cycle_id}/recovery")
+            return Recovery(**response).model_dump()
         except WhoopAPIError as e:
             return {"error": e.message, "status_code": e.status_code}

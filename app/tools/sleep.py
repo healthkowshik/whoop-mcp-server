@@ -1,7 +1,8 @@
 from mcp.server.fastmcp import FastMCP
 
+from app.schemas.sleep import Sleep
 from app.services.whoop_client import WhoopAPIError, client
-from app.utils.timezone import process_response_timestamps
+from app.utils.timezone import preprocess_response, preprocess_timestamps
 
 
 def register_sleep_tools(mcp: FastMCP):
@@ -55,7 +56,13 @@ def register_sleep_tools(mcp: FastMCP):
             if end:
                 params["end"] = end
             response = await client.get_paginated("/v2/activity/sleep", params, limit)
-            return process_response_timestamps(response)
+            response = preprocess_response(response)
+
+            # Parse records through Pydantic models
+            response["records"] = [
+                Sleep(**record).model_dump() for record in response["records"]
+            ]
+            return response
         except WhoopAPIError as e:
             return {"error": e.message, "status_code": e.status_code}
 
@@ -79,6 +86,7 @@ def register_sleep_tools(mcp: FastMCP):
         """
         try:
             response = await client.get(f"/v2/activity/sleep/{sleep_id}")
-            return process_response_timestamps(response)
+            response = preprocess_timestamps(response)
+            return Sleep(**response).model_dump()
         except WhoopAPIError as e:
             return {"error": e.message, "status_code": e.status_code}

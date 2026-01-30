@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel, computed_field, field_serializer
 
 
 class ZoneDuration(BaseModel):
@@ -36,6 +36,15 @@ class Workout(BaseModel):
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
+    @field_serializer("start", "end", "created_at", "updated_at")
+    def serialize_datetime(self, value: datetime | None) -> str | None:
+        """Format datetime with timezone offset for display."""
+        if value is None:
+            return None
+        if self.timezone_offset:
+            return f"{value.strftime('%Y-%m-%d %I:%M %p')} ({self.timezone_offset})"
+        return value.isoformat()
+
     @computed_field
     @property
     def date(self) -> date:
@@ -46,13 +55,13 @@ class Workout(BaseModel):
     @computed_field
     @property
     def weekday(self) -> str:
-        """Day of week for the workout (e.g., 'Monday', 'Tuesday'). Based on end time, falls back to start if ongoing."""
+        """Day of week (e.g., 'Monday'). Based on end time, falls back to start if ongoing."""
         dt = self.end if self.end is not None else self.start
         return dt.strftime("%A")
 
     @computed_field
     @property
     def is_weekend(self) -> bool:
-        """Whether the workout falls on a weekend (Saturday or Sunday). Based on end time, falls back to start if ongoing."""
+        """Whether it falls on a weekend. Based on end time, falls back to start if ongoing."""
         dt = self.end if self.end is not None else self.start
         return dt.weekday() >= 5
