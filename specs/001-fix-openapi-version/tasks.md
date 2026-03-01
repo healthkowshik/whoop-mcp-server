@@ -27,7 +27,7 @@ description: "Task list for Fix WHOOP OpenAPI Version Field"
 
 **Purpose**: Initialize the Python project with uv, dependencies, and package structure
 
-- [ ] T001 Create pyproject.toml at repository root with: project name `whoop-mcp-server`, Python >=3.11, dependency `httpx`, dev dependencies `pytest` and `openapi-spec-validator`, CLI entry point `whoop-fetch-openapi = "whoop_mcp_server.fetch_openapi:main"`, and pytest config `testpaths = ["tests"]`
+- [ ] T001 Create pyproject.toml at repository root with: project name `whoop-mcp-server`, Python >=3.11, dependency `httpx`, dev dependencies `pytest`, `openapi-spec-validator`, `ruff`, and `ty`, CLI entry point `whoop-fetch-openapi = "whoop_mcp_server.fetch_openapi:main"`, pytest config `testpaths = ["tests"]`, ruff config (line-length 88, target Python 3.11), and ty config (strict mode)
 - [ ] T002 [P] Create src/whoop_mcp_server/__init__.py with package docstring
 - [ ] T003 [P] Create .python-version containing `3.11`
 - [ ] T004 Run `uv sync` to install dependencies and generate uv.lock
@@ -79,8 +79,9 @@ description: "Task list for Fix WHOOP OpenAPI Version Field"
 
 **Purpose**: Generate the actual output file and validate the quickstart workflow
 
-- [ ] T013 Run `uv run whoop-fetch-openapi` to generate openapi.json at repository root
-- [ ] T014 Validate quickstart.md by following its steps: verify `uv sync` works, `uv run whoop-fetch-openapi` produces output, and `uv run pytest` passes
+- [ ] T013 [P] Run `uv run ruff check src/ tests/` and `uv run ty src/` to verify linting and type checking pass with zero errors
+- [ ] T014 Run `uv run whoop-fetch-openapi` to generate openapi.json at repository root
+- [ ] T015 Validate quickstart.md by following its steps: verify `uv sync` works, `uv run whoop-fetch-openapi` produces output, and `uv run pytest` passes
 
 ---
 
@@ -107,7 +108,7 @@ description: "Task list for Fix WHOOP OpenAPI Version Field"
 ### Parallel Opportunities
 
 - T002 and T003 can run in parallel (different files, no dependencies)
-- T005 and T006 can run in parallel (different test concerns in same file, but independent test functions)
+- T005 and T006 are sequential (same file `tests/test_fetch_openapi.py`)
 
 ---
 

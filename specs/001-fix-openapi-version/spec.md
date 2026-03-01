@@ -19,8 +19,7 @@ A developer runs a CLI command to fetch the WHOOP OpenAPI spec
 from the upstream URL, patch in the missing `version` field,
 and save the corrected spec as a static file in the repository.
 This static file becomes the single source of truth for all
-downstream consumers (Postman, Swagger Editor, MCP tool, code
-generators).
+downstream consumers (Postman, Swagger Editor, code generators).
 
 **Why this priority**: The static file is the foundation —
 every other user story depends on it existing and being valid.
