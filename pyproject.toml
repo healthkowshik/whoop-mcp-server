@@ -1,0 +1,37 @@
+[project]
+name = "whoop-mcp-server"
+version = "0.1.0"
+description = "A Model Context Protocol (MCP) server that lets AI agents securely query WHOOP health data."
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "httpx",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "openapi-spec-validator>=0.7",
+    "ruff>=0.9",
+    "ty>=0.0.19",
+]
+
+[project.scripts]
+whoop-fetch-openapi = "whoop_mcp_server.fetch_openapi:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/whoop_mcp_server"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
