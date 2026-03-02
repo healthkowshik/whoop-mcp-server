@@ -5,6 +5,13 @@
 **Status**: Draft
 **Input**: User description: "Document the steps and common pitfalls when setting up WHOOP API integration, covering OAuth2 configuration, authentication headers, pagination, and date formatting — written in a tool-agnostic way so it's useful regardless of the HTTP client."
 
+## Clarifications
+
+### Session 2026-03-02
+
+- Q: Should the guide cover token refresh/expiration handling, or only initial token acquisition? → A: Include a brief token refresh section covering how to use the refresh token to get a new access token.
+- Q: What format should the concrete HTTP request/response examples use? → A: curl commands — widely recognized and directly copy-pasteable into a terminal.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - First-Time API Setup (Priority: P1)
@@ -20,6 +27,7 @@ A developer wants to make their first successful WHOOP API call. They have regis
 1. **Given** a developer with WHOOP client credentials and no prior setup, **When** they follow the OAuth2 setup section of the guide, **Then** they successfully obtain an access token without encountering authentication errors.
 2. **Given** a developer configuring OAuth2 for the first time, **When** they read the state parameter guidance, **Then** they provide a state value that meets WHOOP's minimum length requirement (more than 8 characters) and the authorization request succeeds.
 3. **Given** a developer sending client credentials, **When** they follow the guide's instructions to send credentials in the request body (not as a Basic Auth header), **Then** the token exchange completes successfully.
+4. **Given** a developer whose access token has expired, **When** they follow the token refresh section, **Then** they obtain a new access token using their refresh token without repeating the full authorization flow.
 
 ---
 
@@ -67,14 +75,15 @@ A developer has attempted to set up the WHOOP API but is getting errors. They us
 ### Functional Requirements
 
 - **FR-001**: The guide MUST document the complete OAuth2 authorization flow for the WHOOP API, including the authorization URL, token exchange URL, required scopes, and redirect URI setup.
-- **FR-002**: The guide MUST explicitly state that authorization data (Bearer token) must be sent in the HTTP `Authorization` request header, not as a query parameter or other mechanism.
-- **FR-003**: The guide MUST document that the OAuth2 `state` parameter must be longer than 8 characters, with a concrete example of a valid value.
-- **FR-004**: The guide MUST document that client credentials (client ID and client secret) must be sent in the token request body, not as a Basic Authentication header.
-- **FR-005**: The guide MUST document the required date format for date-filtered endpoints as full ISO 8601 with time and timezone (e.g., `2026-01-01T00:00:00.000Z`), with both valid and invalid examples.
-- **FR-006**: The guide MUST explain that `nextToken=string` shown in API documentation is a placeholder and should be omitted from initial requests; actual pagination tokens are returned in API responses.
-- **FR-007**: The guide MUST be written in a tool-agnostic manner, using generic HTTP concepts (headers, request body, query parameters) rather than tool-specific terminology (e.g., no "Postman tab" or "Insomnia dropdown" references).
-- **FR-008**: The guide MUST include a quick-reference summary (checklist or table) of all common pitfalls for developers who want a scannable overview.
-- **FR-009**: The guide MUST include concrete HTTP request/response examples showing correct configuration for each pitfall documented.
+- **FR-002**: The guide MUST include a brief token refresh section explaining how to use a refresh token to obtain a new access token when the current one expires, without repeating the full authorization flow.
+- **FR-003**: The guide MUST explicitly state that authorization data (Bearer token) must be sent in the HTTP `Authorization` request header, not as a query parameter or other mechanism.
+- **FR-004**: The guide MUST document that the OAuth2 `state` parameter must be longer than 8 characters, with a concrete example of a valid value.
+- **FR-005**: The guide MUST document that client credentials (client ID and client secret) must be sent in the token request body, not as a Basic Authentication header.
+- **FR-006**: The guide MUST document the required date format for date-filtered endpoints as full ISO 8601 with time and timezone (e.g., `2026-01-01T00:00:00.000Z`), with both valid and invalid examples.
+- **FR-007**: The guide MUST explain that `nextToken=string` shown in API documentation is a placeholder and should be omitted from initial requests; actual pagination tokens are returned in API responses.
+- **FR-008**: The guide MUST be written in a tool-agnostic manner, using generic HTTP concepts (headers, request body, query parameters) rather than tool-specific terminology (e.g., no "Postman tab" or "Insomnia dropdown" references).
+- **FR-009**: The guide MUST include a quick-reference summary (checklist or table) of all common pitfalls for developers who want a scannable overview.
+- **FR-010**: The guide MUST include concrete examples as curl commands showing correct configuration for each pitfall documented, so developers can copy-paste and adapt them to any HTTP client.
 
 ### Key Entities
 
@@ -87,7 +96,7 @@ A developer has attempted to set up the WHOOP API but is getting errors. They us
 ### Measurable Outcomes
 
 - **SC-001**: A developer with WHOOP client credentials can go from zero to a successful API data response by following the guide alone, without needing to consult external resources or contact support.
-- **SC-002**: The guide covers all 6 documented pitfalls: (1) auth in headers, (2) Bearer token format, (3) state parameter length, (4) client credentials in body, (5) placeholder parameter removal, (6) ISO 8601 date format.
+- **SC-002**: The guide covers all 7 documented topics: (1) auth in headers, (2) Bearer token format, (3) state parameter length, (4) client credentials in body, (5) placeholder parameter removal, (6) ISO 8601 date format, (7) token refresh using refresh tokens.
 - **SC-003**: Each pitfall entry includes the symptom (what error the developer sees), the cause, and the fix — enabling troubleshooting use in under 2 minutes per issue.
 - **SC-004**: The guide is usable with any HTTP client (curl, httpx, Postman, Insomnia, browser fetch, etc.) without modification.
 
