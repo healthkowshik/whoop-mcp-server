@@ -85,7 +85,7 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T016 [US2] Write unit tests for `get_valid_token()` in `tests/unit/test_token_manager.py` — test cases: (1) valid token returned immediately without network call, (2) token within refresh buffer triggers refresh then returns new token, (3) expired token triggers refresh then returns new token, (4) no tokens loaded raises AuthenticationError, (5) refresh fails with revoked token (4xx) raises AuthenticationError, (6) refresh fails after 3 retries raises TransientError with attempts count, (7) store.save() called after successful refresh, (8) refresh sends client_id/client_secret in POST body with offline scope. Use httpx mock transport.
+- [ ] T016 [US2] Write unit tests for `get_valid_token()` in `tests/unit/test_token_manager.py` — test cases: (1) valid token returned immediately without network call, (2) token within refresh buffer triggers refresh then returns new token, (3) expired token triggers refresh then returns new token, (4) no tokens loaded raises AuthenticationError, (5) refresh fails with revoked token (4xx) raises AuthenticationError, (6) refresh fails after 3 retries raises TransientError with attempts count, (7) store.save() called after successful refresh, (8) refresh sends client_id/client_secret in POST body with offline scope, (9) refresh response that omits refresh_token raises AuthenticationError (WHOOP contract requires both tokens when offline scope used). Use httpx mock transport.
 
 ### Implementation for User Story 2
 
@@ -132,7 +132,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Implement `from_tokens()` classmethod and store loading in `src/whoop_mcp_server/auth/token_manager.py` — `from_tokens(credentials, access_token, refresh_token, expires_in, **kwargs)` computes `expires_at = time.monotonic() + expires_in` and creates TokenPair; in constructor, if store provided, call `await store.load()` (handle via an `_initialized` flag or async init pattern); implement monotonic↔UTC conversion helpers for store serialization per research.md R4 and data-model.md
+- [ ] T024 [US4] Implement `from_tokens()` classmethod and lazy store loading in `src/whoop_mcp_server/auth/token_manager.py` — `from_tokens(credentials, access_token, refresh_token, expires_in, **kwargs)` computes `expires_at = time.monotonic() + expires_in` and creates TokenPair; add `_store_loaded: bool = False` flag to constructor; in `get_valid_token()`, if `not _store_loaded` and store is set, `await store.load()` and set flag (runs at most once); implement monotonic↔UTC conversion helpers for store serialization per research.md R4 and data-model.md
 - [ ] T025 [US4] Verify US4 tests pass: `uv run pytest tests/unit/test_token_manager.py -k from_tokens -v`
 
 **Checkpoint**: All four user stories complete. Manager can be initialized from code exchange, pre-existing tokens, or persistent store.

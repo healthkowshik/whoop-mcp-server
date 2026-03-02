@@ -18,9 +18,9 @@ TokenManager(
 ```
 
 **Behavior on init**:
-- If `store` is provided, attempt to `store.load()`. If tokens found, use them.
-- If pre-existing tokens passed explicitly (via `from_tokens()` classmethod), use those.
-- If neither, the manager starts in an unauthenticated state.
+- If pre-existing tokens passed explicitly (via `from_tokens()` classmethod), use those immediately.
+- If `store` is provided (but no pre-existing tokens), the store is **not** loaded eagerly — the constructor is synchronous. Instead, `store.load()` is called lazily on the first `get_valid_token()` invocation (guarded by an internal `_store_loaded` flag so it runs at most once).
+- If neither tokens nor store are provided, the manager starts in an unauthenticated state.
 
 ### Primary Interface
 

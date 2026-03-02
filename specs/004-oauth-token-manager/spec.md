@@ -74,7 +74,7 @@ A developer or upstream system already has a valid access token and refresh toke
 
 - What happens when the refresh token itself has been revoked by the user (e.g., via WHOOP's dashboard)? The manager should raise a specific "re-authentication required" error, not a generic network error.
 - What happens when WHOOP's token endpoint is temporarily unreachable during a refresh? The manager retries up to 3 times with exponential backoff (1s, 2s, 4s delays; ~7s total max). If all retries fail, it raises a TransientError without corrupting token state.
-- What happens when the system clock is significantly skewed, making expiry calculations unreliable? The manager should treat unexpected 401 responses as a signal to refresh, regardless of the local expiry calculation.
+- What happens when the system clock is significantly skewed, making expiry calculations unreliable? **Deferred**: The token manager uses `time.monotonic()` which is immune to clock adjustments (per research.md R4). Handling 401 responses from the WHOOP API requires the *caller* (API client layer) to signal the token manager — this will be addressed when the API client feature is built (e.g., via an `invalidate()` method).
 - What happens when the manager has no tokens at all (neither from initialization nor from a code exchange)? Calling `get_valid_token()` should raise a clear "not authenticated" error.
 - What happens when a refresh response returns a valid access token but omits the refresh token? The manager should raise an error (WHOOP's contract guarantees both are returned when `offline` scope is used).
 
@@ -97,13 +97,13 @@ A developer or upstream system already has a valid access token and refresh toke
 - **FR-005**: System MUST proactively refresh the access token when it is within a configurable buffer period before expiry (default: 5 minutes), rather than waiting for it to expire.
 - **FR-006**: System MUST use an async mutex (or equivalent locking mechanism) to ensure only one refresh request is in-flight at a time, with concurrent callers waiting for the result.
 - **FR-007**: System MUST update both the access token and refresh token atomically after a successful refresh, since WHOOP invalidates the old refresh token on each refresh (token rotation).
-- **FR-008**: System MUST accept pre-existing tokens (access token, refresh token, expiry) for initialization, supporting scenarios where tokens are obtained out-of-band. When a persistent TokenStore is provided, the manager MUST also attempt to load tokens from the store on startup.
+- **FR-008**: System MUST accept pre-existing tokens (access token, refresh token, expiry) for initialization, supporting scenarios where tokens are obtained out-of-band. When a persistent TokenStore is provided, the manager MUST load tokens from the store lazily on the first `get_valid_token()` call (the constructor is synchronous and cannot await).
 - **FR-009**: System MUST raise a distinct "re-authentication required" error when a refresh fails due to an invalid or revoked refresh token, distinguishing this from transient network errors.
 - **FR-010**: System MUST use an async HTTP client for all communication with WHOOP's token endpoint.
 - **FR-011**: System MUST include the `offline` scope in refresh requests to ensure a new refresh token is returned.
 - **FR-012**: System MUST retry failed token endpoint requests up to 3 times with exponential backoff (1s, 2s, 4s delays). Retries apply only to transient failures (network errors, 5xx responses). Non-retryable errors (4xx responses indicating invalid credentials or revoked tokens) MUST fail immediately without retry.
 - **FR-013**: System MUST never include client_secret or token values in error messages, log output, or object string representations. Errors MUST convey the failure type and HTTP status code without exposing credentials.
-- **FR-014**: System MUST accept an optional TokenStore at initialization. The TokenStore interface requires two operations: save (write a TokenPair) and load (read a TokenPair or indicate none exists). The manager calls save after every successful token exchange or refresh.
+- **FR-014**: System MUST accept an optional TokenStore at initialization. The TokenStore interface requires two operations: `save(data: dict)` and `load() -> dict | None`. The dict contains serialized token data (see data-model.md for format). The manager calls save after every successful token exchange or refresh.
 
 ### Key Entities
 
@@ -112,7 +112,7 @@ A developer or upstream system already has a valid access token and refresh toke
 - **TokenRefreshRequest**: The parameters needed to refresh — refresh token, client ID, client secret, scope.
 - **AuthenticationError**: Represents a permanent authentication failure (revoked tokens, invalid credentials) that requires the user to re-authenticate through the browser flow.
 - **TransientError**: Represents a temporary failure (network timeout, server error) that may succeed on retry.
-- **TokenStore**: Interface for token persistence. Requires save (write TokenPair) and load (read TokenPair or return none). Default in-memory implementation provided. Deployment layer supplies persistent implementations (file, Redis, KV) as needed.
+- **TokenStore**: Interface for token persistence. Requires `save(data: dict)` and `load() -> dict | None`. Default in-memory implementation provided. Deployment layer supplies persistent implementations (file, Redis, KV) as needed.
 
 ## Success Criteria *(mandatory)*
 
