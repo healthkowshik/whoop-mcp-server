@@ -73,10 +73,18 @@ A developer or upstream system already has a valid access token and refresh toke
 ### Edge Cases
 
 - What happens when the refresh token itself has been revoked by the user (e.g., via WHOOP's dashboard)? The manager should raise a specific "re-authentication required" error, not a generic network error.
-- What happens when WHOOP's token endpoint is temporarily unreachable during a refresh? The manager should retry with backoff (up to a bounded number of attempts) and raise an error if all retries fail, without corrupting token state.
+- What happens when WHOOP's token endpoint is temporarily unreachable during a refresh? The manager retries up to 3 times with exponential backoff (1s, 2s, 4s delays; ~7s total max). If all retries fail, it raises a TransientError without corrupting token state.
 - What happens when the system clock is significantly skewed, making expiry calculations unreliable? The manager should treat unexpected 401 responses as a signal to refresh, regardless of the local expiry calculation.
 - What happens when the manager has no tokens at all (neither from initialization nor from a code exchange)? Calling `get_valid_token()` should raise a clear "not authenticated" error.
 - What happens when a refresh response returns a valid access token but omits the refresh token? The manager should raise an error (WHOOP's contract guarantees both are returned when `offline` scope is used).
+
+## Clarifications
+
+### Session 2026-03-02
+
+- Q: Should the token manager notify callers when tokens change (after exchange or refresh)? → A: Pluggable store — manager accepts an optional TokenStore interface at init (default: in-memory). Manager calls `store.save()` after every successful exchange or refresh. Deployment layer provides persistent implementations (file, Redis, KV). No callback needed.
+- Q: How many retries should the manager attempt before giving up on a failed refresh? → A: 3 retries with exponential backoff (1s, 2s, 4s delays; ~7s total max), then raise error.
+- Q: Should the manager ensure that secrets are never included in error messages or string representations? → A: Always redact. Error messages and object string representations never contain client_secret or token values.
 
 ## Requirements *(mandatory)*
 
@@ -84,15 +92,18 @@ A developer or upstream system already has a valid access token and refresh toke
 
 - **FR-001**: System MUST exchange an authorization code for an access token and refresh token by calling WHOOP's token endpoint at `https://api.prod.whoop.com/oauth/oauth2/token`.
 - **FR-002**: System MUST send client credentials (`client_id` and `client_secret`) as POST body parameters in `application/x-www-form-urlencoded` format, never as a Basic Auth header.
-- **FR-003**: System MUST store the access token, refresh token, and token expiry timestamp in memory after a successful token exchange or refresh.
+- **FR-003**: System MUST store the access token, refresh token, and token expiry timestamp via a pluggable TokenStore interface after every successful token exchange or refresh. The default implementation stores tokens in memory only.
 - **FR-004**: System MUST expose a `get_valid_token()` method that returns a currently-valid access token, refreshing transparently if needed.
 - **FR-005**: System MUST proactively refresh the access token when it is within a configurable buffer period before expiry (default: 5 minutes), rather than waiting for it to expire.
 - **FR-006**: System MUST use an async mutex (or equivalent locking mechanism) to ensure only one refresh request is in-flight at a time, with concurrent callers waiting for the result.
 - **FR-007**: System MUST update both the access token and refresh token atomically after a successful refresh, since WHOOP invalidates the old refresh token on each refresh (token rotation).
-- **FR-008**: System MUST accept pre-existing tokens (access token, refresh token, expiry) for initialization, supporting scenarios where tokens are obtained out-of-band.
+- **FR-008**: System MUST accept pre-existing tokens (access token, refresh token, expiry) for initialization, supporting scenarios where tokens are obtained out-of-band. When a persistent TokenStore is provided, the manager MUST also attempt to load tokens from the store on startup.
 - **FR-009**: System MUST raise a distinct "re-authentication required" error when a refresh fails due to an invalid or revoked refresh token, distinguishing this from transient network errors.
 - **FR-010**: System MUST use an async HTTP client for all communication with WHOOP's token endpoint.
 - **FR-011**: System MUST include the `offline` scope in refresh requests to ensure a new refresh token is returned.
+- **FR-012**: System MUST retry failed token endpoint requests up to 3 times with exponential backoff (1s, 2s, 4s delays). Retries apply only to transient failures (network errors, 5xx responses). Non-retryable errors (4xx responses indicating invalid credentials or revoked tokens) MUST fail immediately without retry.
+- **FR-013**: System MUST never include client_secret or token values in error messages, log output, or object string representations. Errors MUST convey the failure type and HTTP status code without exposing credentials.
+- **FR-014**: System MUST accept an optional TokenStore at initialization. The TokenStore interface requires two operations: save (write a TokenPair) and load (read a TokenPair or indicate none exists). The manager calls save after every successful token exchange or refresh.
 
 ### Key Entities
 
@@ -101,6 +112,7 @@ A developer or upstream system already has a valid access token and refresh toke
 - **TokenRefreshRequest**: The parameters needed to refresh — refresh token, client ID, client secret, scope.
 - **AuthenticationError**: Represents a permanent authentication failure (revoked tokens, invalid credentials) that requires the user to re-authenticate through the browser flow.
 - **TransientError**: Represents a temporary failure (network timeout, server error) that may succeed on retry.
+- **TokenStore**: Interface for token persistence. Requires save (write TokenPair) and load (read TokenPair or return none). Default in-memory implementation provided. Deployment layer supplies persistent implementations (file, Redis, KV) as needed.
 
 ## Success Criteria *(mandatory)*
 
@@ -119,5 +131,5 @@ A developer or upstream system already has a valid access token and refresh toke
 - Access tokens expire in 3600 seconds (1 hour) as currently documented. The manager uses the `expires_in` value from the response rather than hardcoding this.
 - WHOOP always returns a new refresh token alongside a new access token when the `offline` scope is included. If this changes, the manager will detect and surface the error.
 - The proactive refresh buffer defaults to 5 minutes before expiry, balancing between avoiding expired-token API failures and minimizing unnecessary refreshes.
-- Token storage is in-memory only for this feature. Persistent storage (surviving process restarts) is a separate feature concern for the deployment layer.
+- Token persistence is handled via a pluggable TokenStore interface. This feature provides the interface and a default in-memory implementation. Persistent implementations (file, Redis, KV) are provided by the deployment layer but plug into the same interface.
 - The async mutex assumes a single-process deployment. Multi-process or distributed locking is a deployment-layer concern.

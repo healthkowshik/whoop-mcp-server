@@ -33,4 +33,5 @@
 
 - FR-010 mentions "async HTTP client" which is borderline implementation detail, but is necessary to convey the concurrency model without naming a specific library. Acceptable.
 - The WHOOP token endpoint URL in FR-001 is a domain-specific fact (like an API contract), not an implementation choice. Acceptable.
-- All items pass. Spec is ready for `/speckit.clarify` or `/speckit.plan`.
+- Clarification session (2026-03-02) resolved 3 questions: pluggable TokenStore, retry strategy, credential redaction. All integrated into FRs and entities.
+- All items pass. Spec is ready for `/speckit.plan`.
