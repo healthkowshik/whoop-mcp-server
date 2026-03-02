@@ -17,7 +17,7 @@
 
 **Purpose**: Create the documentation directory and initialize the output file
 
-- [ ] T001 Create `docs/` directory and initialize `docs/data-model.md` with page title ("WHOOP API Data Model"), a brief introduction paragraph stating this page documents the entity-relationship model derived from `openapi.json`, and a table of contents linking to the ER Diagram section and Domain Overview section
+- [x] T001 Create `docs/` directory and initialize `docs/data-model.md` with page title ("WHOOP API Data Model"), a brief introduction paragraph stating this page documents the entity-relationship model derived from `openapi.json`, and a table of contents linking to the ER Diagram section and Domain Overview section
 
 ---
 
@@ -29,9 +29,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Add a Mermaid `erDiagram` code block to `docs/data-model.md` containing all 14 entity definitions with every attribute and its type. Use the entity catalog from `specs/002-openapi-er-docs/data-model.md` as the source of truth. Use camelCase for attribute names (e.g., `userId`, `createdAt`, `scoreState`). Use the type mapping from `specs/002-openapi-er-docs/research.md` (R3). Entities to include: UserBasicProfile (4 attrs), UserBodyMeasurement (3 attrs), Cycle (8 attrs), CycleScore (4 attrs), Sleep (11 attrs), SleepScore (4 attrs), SleepStageSummary (8 attrs), SleepNeeded (4 attrs), Recovery (6 attrs), RecoveryScore (6 attrs), WorkoutV2 (11 attrs), WorkoutScore (8 attrs), ZoneDurations (6 attrs), ActivityIdMappingResponse (1 attr). Exclude pagination wrappers per FR-008.
-- [ ] T003 [US1] Add all 15 relationship lines to the erDiagram block in `docs/data-model.md` using correct Mermaid cardinality notation. Use the relationships table from `specs/002-openapi-er-docs/data-model.md` as source. Cardinality mappings: one-to-many = `||--o{`, one-to-zero-or-one = `||--o|`, one-to-one = `||--||`. Include descriptive labels on each relationship line (e.g., "has score", "belongs to", "contains").
-- [ ] T004 [US1] Validate the Mermaid erDiagram syntax in `docs/data-model.md` by checking: (1) all 14 entities are present, (2) attribute count matches — total ~84 attributes across all entities, (3) all 15 relationship lines are present with valid cardinality notation, (4) no syntax errors that would prevent rendering (matching braces, valid relationship operators, no special characters in attribute names)
+- [x] T002 [US1] Add a Mermaid `erDiagram` code block to `docs/data-model.md` containing all 14 entity definitions with every attribute and its type. Use the entity catalog from `specs/002-openapi-er-docs/data-model.md` as the source of truth. Use camelCase for attribute names (e.g., `userId`, `createdAt`, `scoreState`). Use the type mapping from `specs/002-openapi-er-docs/research.md` (R3). Entities to include: UserBasicProfile (4 attrs), UserBodyMeasurement (3 attrs), Cycle (8 attrs), CycleScore (4 attrs), Sleep (11 attrs), SleepScore (4 attrs), SleepStageSummary (8 attrs), SleepNeeded (4 attrs), Recovery (6 attrs), RecoveryScore (6 attrs), WorkoutV2 (11 attrs), WorkoutScore (8 attrs), ZoneDurations (6 attrs), ActivityIdMappingResponse (1 attr). Exclude pagination wrappers per FR-008.
+- [x] T003 [US1] Add all 15 relationship lines to the erDiagram block in `docs/data-model.md` using correct Mermaid cardinality notation. Use the relationships table from `specs/002-openapi-er-docs/data-model.md` as source. Cardinality mappings: one-to-many = `||--o{`, one-to-zero-or-one = `||--o|`, one-to-one = `||--||`. Include descriptive labels on each relationship line (e.g., "has score", "belongs to", "contains").
+- [x] T004 [US1] Validate the Mermaid erDiagram syntax in `docs/data-model.md` by checking: (1) all 14 entities are present, (2) attribute count matches — total ~84 attributes across all entities, (3) all 15 relationship lines are present with valid cardinality notation, (4) no syntax errors that would prevent rendering (matching braces, valid relationship operators, no special characters in attribute names)
 
 **Checkpoint**: User Story 1 complete — the ER diagram renders and shows all entities, attributes, and relationships
 
@@ -45,7 +45,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T005 [US2] Add a "Domain Overview" section after the Mermaid diagram in `docs/data-model.md` with five subsections — User, Cycle, Sleep, Recovery, Workout — each containing 2-3 sentences describing the domain group's role in WHOOP health tracking, the key entities in that group, and how they relate to other groups. Source descriptions from the entity descriptions in `openapi.json` and the Key Entities section in `specs/002-openapi-er-docs/spec.md`.
+- [x] T005 [US2] Add a "Domain Overview" section after the Mermaid diagram in `docs/data-model.md` with five subsections — User, Cycle, Sleep, Recovery, Workout — each containing 2-3 sentences describing the domain group's role in WHOOP health tracking, the key entities in that group, and how they relate to other groups. Source descriptions from the entity descriptions in `openapi.json` and the Key Entities section in `specs/002-openapi-er-docs/spec.md`.
 
 **Checkpoint**: User Story 2 complete — domain overview text is present alongside the diagram
 
@@ -55,7 +55,7 @@
 
 **Purpose**: Final verification and cleanup
 
-- [ ] T006 Final review of `docs/data-model.md`: verify (1) page renders without errors in markdown preview, (2) all 14 entities present in diagram, (3) all 15 relationships present, (4) domain overview covers all 5 groups, (5) no typos or formatting issues, (6) attribute names and types match `openapi.json`
+- [x] T006 Final review of `docs/data-model.md`: verify (1) page renders without errors in markdown preview, (2) all 14 entities present in diagram, (3) all 15 relationships present, (4) domain overview covers all 5 groups, (5) no typos or formatting issues, (6) attribute names and types match `openapi.json`
 
 ---
 
