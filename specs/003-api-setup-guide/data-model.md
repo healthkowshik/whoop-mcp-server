@@ -13,6 +13,8 @@ The guide (`docs/api-setup-guide.md`) follows this section hierarchy:
 2. Prerequisites
    - WHOOP Developer Portal registration
    - Client ID and Client Secret
+   - Redirect URI (localhost for local testing — no server needed)
+   - Shell variable setup (CLIENT_ID, CLIENT_SECRET, REDIRECT_URI)
 3. OAuth2 Authorization Flow
    3.1 Authorization Request (authorization URL, state, scopes, redirect URI)
    3.2 Token Exchange (token endpoint, client credentials in body)
@@ -33,9 +35,9 @@ The guide (`docs/api-setup-guide.md`) follows this section hierarchy:
 |-----------|---------------|-------|
 | Authorization URL | `https://api.prod.whoop.com/oauth/oauth2/auth` | Fixed endpoint |
 | Token Endpoint | `https://api.prod.whoop.com/oauth/oauth2/token` | Fixed endpoint |
-| Client ID | `<your-client-id>` | From Developer Portal |
-| Client Secret | `<your-client-secret>` | From Developer Portal |
-| Redirect URI | `https://example.com/callback` | Must match portal registration |
+| Client ID | `$CLIENT_ID` | From Developer Portal; set as shell variable |
+| Client Secret | `$CLIENT_SECRET` | From Developer Portal; set as shell variable |
+| Redirect URI | `http://localhost:8080/callback` | Must match portal registration; for local testing no server needed — copy `code` from browser address bar |
 | State | `whoop-csrf-random-abc123` | Minimum 8 chars; recommend 16+ |
 | Scopes | `read:cycles read:recovery offline` | Space-separated; `offline` required for refresh |
 

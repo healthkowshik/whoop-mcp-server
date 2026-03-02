@@ -20,9 +20,21 @@ This guide walks you through configuring OAuth2 authentication, making your firs
 
 2. **Obtain your Client ID and Client Secret** — After creating your application, the portal displays your `Client ID` and `Client Secret`. Copy both values; you will need them for every token request.
 
-3. **Configure a Redirect URI** — In your application settings, add a Redirect URI (e.g., `https://example.com/callback`). This must exactly match the `redirect_uri` parameter you send in authorization requests.
+3. **Configure a Redirect URI** — In your application settings on the Developer Dashboard, add a Redirect URI **before** running any authorization requests. The value you register must exactly match the `redirect_uri` you send — including scheme, port, and path.
+
+   **For local testing**, add `http://localhost:8080/callback` in the portal. You do not need a server running on that port. After you authorize, the browser will redirect to that URL with a `code` query parameter in the address bar — just copy the code value. The page itself will show a "connection refused" error, which you can ignore.
 
 > **Security warning:** Never commit your Client Secret to source control, log it to stdout, or include it in client-side code. Treat it like a password.
+
+4. **Set your shell variables** — Paste the following into your terminal and fill in your values. Every curl example in this guide references these variables, so you only need to set them once per session:
+
+```bash
+export CLIENT_ID="your-client-id"
+export CLIENT_SECRET="your-client-secret"
+export REDIRECT_URI="http://localhost:8080/callback"
+```
+
+You will set additional variables (`AUTH_CODE`, `ACCESS_TOKEN`, `REFRESH_TOKEN`) as you progress through the OAuth2 flow below.
 
 ## OAuth2 Authorization Flow
 
@@ -39,10 +51,10 @@ https://api.prod.whoop.com/oauth/oauth2/auth
 | Parameter | Value | Description |
 |-----------|-------|-------------|
 | `response_type` | `code` | Must be `code` for the Authorization Code flow |
-| `client_id` | `<your-client-id>` | Your application's Client ID |
-| `redirect_uri` | `https://example.com/callback` | Must exactly match your portal configuration |
+| `client_id` | `$CLIENT_ID` | Your application's Client ID |
+| `redirect_uri` | `$REDIRECT_URI` | Must exactly match your portal configuration |
 | `scope` | `read:cycles read:recovery offline` | Space-separated list of requested scopes |
-| `state` | `whoop-csrf-random-abc123` | CSRF protection token (minimum 8 characters; recommend 16+) |
+| `state` | *(auto-generated)* | CSRF protection token (minimum 8 characters; recommend 16+) |
 
 **Available scopes:**
 
@@ -58,18 +70,30 @@ https://api.prod.whoop.com/oauth/oauth2/auth
 
 > **Note:** Include the `offline` scope if you want a refresh token for long-lived access. Without it, you will only receive an access token that expires after 1 hour with no way to renew it.
 
-**Example — construct the authorization URL:**
+**Example — open the authorization URL in your browser:**
 
 ```bash
-curl -G "https://api.prod.whoop.com/oauth/oauth2/auth" \
-  --data-urlencode "response_type=code" \
-  --data-urlencode "client_id=<your-client-id>" \
-  --data-urlencode "redirect_uri=https://example.com/callback" \
-  --data-urlencode "scope=read:cycles read:recovery offline" \
-  --data-urlencode "state=whoop-csrf-random-abc123"
+STATE="whoop-csrf-$(openssl rand -hex 12)"
+
+open "https://api.prod.whoop.com/oauth/oauth2/auth?\
+response_type=code&\
+client_id=$CLIENT_ID&\
+redirect_uri=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$REDIRECT_URI', safe=''))")&\
+scope=read%3Arecovery%20read%3Acycles%20read%3Aworkout%20read%3Asleep%20read%3Aprofile%20read%3Abody_measurement%20offline&\
+state=$STATE"
 ```
 
-After the user authorizes your application, WHOOP redirects to your `redirect_uri` with a `code` query parameter. Use this code in the next step.
+This opens your browser to the WHOOP login page. After you log in and authorize, the browser redirects to your redirect URI. The page will show a "connection refused" error — **this is expected**. Look at the address bar, which will contain:
+
+```
+http://localhost:8080/callback?code=XXXXXX&state=...&scope=...
+```
+
+Copy the `code` value and save it:
+
+```bash
+export AUTH_CODE="paste-the-code-value-here"
+```
 
 ### Token Exchange
 
@@ -86,20 +110,20 @@ https://api.prod.whoop.com/oauth/oauth2/token
 | Parameter | Value |
 |-----------|-------|
 | `grant_type` | `authorization_code` |
-| `code` | `<authorization-code>` |
-| `redirect_uri` | `https://example.com/callback` |
-| `client_id` | `<your-client-id>` |
-| `client_secret` | `<your-client-secret>` |
+| `code` | `$AUTH_CODE` |
+| `redirect_uri` | `$REDIRECT_URI` |
+| `client_id` | `$CLIENT_ID` |
+| `client_secret` | `$CLIENT_SECRET` |
 
 **Example — exchange code for tokens:**
 
 ```bash
 curl -X POST "https://api.prod.whoop.com/oauth/oauth2/token" \
   -d "grant_type=authorization_code" \
-  -d "code=<authorization-code>" \
-  -d "redirect_uri=https://example.com/callback" \
-  -d "client_id=<your-client-id>" \
-  -d "client_secret=<your-client-secret>"
+  -d "code=$AUTH_CODE" \
+  -d "redirect_uri=$REDIRECT_URI" \
+  -d "client_id=$CLIENT_ID" \
+  -d "client_secret=$CLIENT_SECRET"
 ```
 
 **Expected response:**
@@ -112,6 +136,13 @@ curl -X POST "https://api.prod.whoop.com/oauth/oauth2/token" \
   "scope": "read:cycles read:recovery offline",
   "token_type": "bearer"
 }
+```
+
+Save the tokens from the response:
+
+```bash
+export ACCESS_TOKEN="eyJhbGci..."
+export REFRESH_TOKEN="r1a2b3c4..."
 ```
 
 The `access_token` expires after 3600 seconds (1 hour). If you requested the `offline` scope, the response also includes a `refresh_token` you can use to obtain new tokens without re-authorizing.
@@ -127,9 +158,9 @@ Access tokens expire after 1 hour (3600 seconds). If you requested the `offline`
 | Parameter | Value |
 |-----------|-------|
 | `grant_type` | `refresh_token` |
-| `refresh_token` | `<your-refresh-token>` |
-| `client_id` | `<your-client-id>` |
-| `client_secret` | `<your-client-secret>` |
+| `refresh_token` | `$REFRESH_TOKEN` |
+| `client_id` | `$CLIENT_ID` |
+| `client_secret` | `$CLIENT_SECRET` |
 | `scope` | `offline` |
 
 **Example — refresh an expired token:**
@@ -137,13 +168,18 @@ Access tokens expire after 1 hour (3600 seconds). If you requested the `offline`
 ```bash
 curl -X POST "https://api.prod.whoop.com/oauth/oauth2/token" \
   -d "grant_type=refresh_token" \
-  -d "refresh_token=<your-refresh-token>" \
-  -d "client_id=<your-client-id>" \
-  -d "client_secret=<your-client-secret>" \
+  -d "refresh_token=$REFRESH_TOKEN" \
+  -d "client_id=$CLIENT_ID" \
+  -d "client_secret=$CLIENT_SECRET" \
   -d "scope=offline"
 ```
 
-The response format is identical to the token exchange response — it includes a new `access_token`, a new `refresh_token`, and `expires_in: 3600`.
+The response format is identical to the token exchange response — it includes a new `access_token`, a new `refresh_token`, and `expires_in: 3600`. Update your variables with the new values:
+
+```bash
+export ACCESS_TOKEN="new-access-token-from-response"
+export REFRESH_TOKEN="new-refresh-token-from-response"
+```
 
 ## Making API Requests
 
@@ -154,14 +190,14 @@ All WHOOP API requests require a Bearer token in the HTTP `Authorization` header
 **Required header format:**
 
 ```
-Authorization: Bearer <your-access-token>
+Authorization: Bearer $ACCESS_TOKEN
 ```
 
 **Example — fetch cycle data:**
 
 ```bash
 curl "https://api.prod.whoop.com/developer/v2/cycle" \
-  -H "Authorization: Bearer <your-access-token>"
+  -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
 If you receive a `401 Unauthorized` response, your access token is either expired or invalid. See [Token Refresh](#token-refresh) to obtain a new one.
@@ -191,7 +227,7 @@ The `start` and `end` query parameters on paginated endpoints (cycles, recovery,
 
 ```bash
 curl -G "https://api.prod.whoop.com/developer/v2/cycle" \
-  -H "Authorization: Bearer <your-access-token>" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   --data-urlencode "start=2026-01-01T00:00:00.000Z" \
   --data-urlencode "end=2026-01-08T00:00:00.000Z"
 ```
@@ -211,7 +247,7 @@ WHOOP uses cursor-based pagination. The API documentation shows `nextToken=strin
 
 ```bash
 curl -G "https://api.prod.whoop.com/developer/v2/cycle" \
-  -H "Authorization: Bearer <your-access-token>" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   --data-urlencode "limit=25"
 ```
 
@@ -228,7 +264,7 @@ If more results are available, the response includes a `next_token` field:
 
 ```bash
 curl -G "https://api.prod.whoop.com/developer/v2/cycle" \
-  -H "Authorization: Bearer <your-access-token>" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   --data-urlencode "limit=25" \
   --data-urlencode "nextToken=abc123xyz"
 ```
@@ -247,7 +283,7 @@ curl -G "https://api.prod.whoop.com/developer/v2/cycle" \
 
 ```bash
 curl "https://api.prod.whoop.com/developer/v2/cycle" \
-  -H "Authorization: Bearer <your-access-token>"
+  -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
 ### 2. Missing "Bearer " prefix
@@ -256,7 +292,7 @@ curl "https://api.prod.whoop.com/developer/v2/cycle" \
 
 **Cause:** The header value is missing the `Bearer ` prefix (note the trailing space).
 
-**Fix:** Include the prefix — the header must be `Authorization: Bearer <your-access-token>`, not `Authorization: <your-access-token>`.
+**Fix:** Include the prefix — the header must be `Authorization: Bearer $ACCESS_TOKEN`, not `Authorization: $ACCESS_TOKEN`.
 
 ### 3. State parameter too short
 
@@ -281,10 +317,10 @@ state=whoop-csrf-random-abc123
 ```bash
 curl -X POST "https://api.prod.whoop.com/oauth/oauth2/token" \
   -d "grant_type=authorization_code" \
-  -d "code=<authorization-code>" \
-  -d "redirect_uri=https://example.com/callback" \
-  -d "client_id=<your-client-id>" \
-  -d "client_secret=<your-client-secret>"
+  -d "code=$AUTH_CODE" \
+  -d "redirect_uri=$REDIRECT_URI" \
+  -d "client_id=$CLIENT_ID" \
+  -d "client_secret=$CLIENT_SECRET"
 ```
 
 ### 5. Literal `nextToken=string` in request
