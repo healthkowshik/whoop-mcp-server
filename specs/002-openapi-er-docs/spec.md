@@ -19,7 +19,7 @@ As a developer working with the WHOOP API, I want to view a visual ER diagram th
 
 1. **Given** the documentation page exists, **When** a developer opens it, **Then** they see a rendered Mermaid ER diagram displaying all schema entities from `openapi.json`
 2. **Given** the ER diagram is rendered, **When** a developer examines the diagram, **Then** all entity relationships (e.g., Sleep belongs to Cycle, Recovery links to both Cycle and Sleep) are accurately represented with correct cardinality
-3. **Given** the ER diagram is rendered, **When** a developer examines an entity, **Then** each entity shows its key attributes with data types
+3. **Given** the ER diagram is rendered, **When** a developer examines an entity, **Then** each entity shows all of its attributes (as defined in the OpenAPI schema) with data types
 
 ---
 
@@ -51,7 +51,7 @@ As a developer, I want the documentation page to include contextual descriptions
 - **FR-001**: The documentation page MUST be a markdown file that includes a Mermaid ER diagram code block
 - **FR-002**: The ER diagram MUST represent all domain schema entities defined in `openapi.json`, including: UserBasicProfile, UserBodyMeasurement, Cycle, CycleScore, Sleep, SleepScore, SleepStageSummary, SleepNeeded, Recovery, RecoveryScore, WorkoutV2, WorkoutScore, ZoneDurations, and ActivityIdMappingResponse
 - **FR-003**: The ER diagram MUST show relationships between entities with correct cardinality notation (e.g., one-to-many, one-to-one)
-- **FR-004**: Each entity in the diagram MUST display its key attributes with their data types
+- **FR-004**: Each entity in the diagram MUST display ALL attributes defined in the OpenAPI schema with their data types (not just required or key fields)
 - **FR-005**: The ER diagram MUST use standard Mermaid `erDiagram` syntax that renders in GitHub markdown and common Mermaid viewers
 - **FR-006**: The documentation page MUST include a brief textual overview of the WHOOP API data model organized by domain groups (User, Cycle, Sleep, Recovery, Workout)
 - **FR-007**: The documentation page MUST be placed in the `docs/` directory of the project
@@ -73,3 +73,9 @@ As a developer, I want the documentation page to include contextual descriptions
 - **SC-002**: All 14 domain schema entities from `openapi.json` are represented in the diagram (excluding pagination wrappers)
 - **SC-003**: All foreign-key relationships between entities are accurately depicted (User-to-Cycle, Cycle-to-Sleep, Cycle-to-Recovery, Sleep-to-Recovery, and all score/sub-entity compositions)
 - **SC-004**: A developer unfamiliar with the WHOOP API can identify the core data model and entity relationships within 2 minutes of viewing the page
+
+## Clarifications
+
+### Session 2026-03-02
+
+- Q: What level of attribute detail should each entity display — all attributes, required only, IDs/FKs only, or required + relationships? → A: All attributes — show every field defined on every entity in the OpenAPI schema.
