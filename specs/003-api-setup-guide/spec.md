@@ -77,7 +77,7 @@ A developer has attempted to set up the WHOOP API but is getting errors. They us
 - **FR-001**: The guide MUST document the complete OAuth2 authorization flow for the WHOOP API, including the authorization URL, token exchange URL, required scopes, and redirect URI setup.
 - **FR-002**: The guide MUST include a brief token refresh section explaining how to use a refresh token to obtain a new access token when the current one expires, without repeating the full authorization flow.
 - **FR-003**: The guide MUST explicitly state that authorization data (Bearer token) must be sent in the HTTP `Authorization` request header, not as a query parameter or other mechanism.
-- **FR-004**: The guide MUST document that the OAuth2 `state` parameter must be longer than 8 characters, with a concrete example of a valid value.
+- **FR-004**: The guide MUST document that the OAuth2 `state` parameter must be at least 8 characters (per official WHOOP documentation), with a recommendation to use 16+ characters and a concrete example of a valid value.
 - **FR-005**: The guide MUST document that client credentials (client ID and client secret) must be sent in the token request body, not as a Basic Authentication header.
 - **FR-006**: The guide MUST document the required date format for date-filtered endpoints as full ISO 8601 with time and timezone (e.g., `2026-01-01T00:00:00.000Z`), with both valid and invalid examples.
 - **FR-007**: The guide MUST explain that `nextToken=string` shown in API documentation is a placeholder and should be omitted from initial requests; actual pagination tokens are returned in API responses.
@@ -104,5 +104,5 @@ A developer has attempted to set up the WHOOP API but is getting errors. They us
 
 - Developers have already registered an application in the WHOOP Developer Portal and have their client ID and client secret before starting this guide.
 - The WHOOP API uses standard OAuth2 Authorization Code flow (the guide documents deviations from standard defaults, not the entire OAuth2 spec).
-- The 8-character minimum for the state parameter means the value must be strictly longer than 8 characters (9+ characters), based on the user's reported experience.
+- The official WHOOP documentation states the state parameter minimum is 8 characters. The guide will state this minimum and recommend 16+ characters as a security best practice.
 - The WHOOP API pagination uses a cursor-based approach where `nextToken` values are returned in responses and should only be included in subsequent requests.
