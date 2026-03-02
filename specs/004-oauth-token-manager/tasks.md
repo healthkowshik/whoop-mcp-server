@@ -21,10 +21,10 @@
 
 **Purpose**: Create the `auth/` subpackage structure, add dependencies, and prepare test directories
 
-- [ ] T001 Create auth subpackage directory with `__init__.py` at `src/whoop_mcp_server/auth/__init__.py`
-- [ ] T002 Add `tenacity` as a runtime dependency in `pyproject.toml` via `uv add tenacity`
-- [ ] T003 [P] Create test subdirectories `tests/unit/` and `tests/integration/` with `__init__.py` files
-- [ ] T004 [P] Add `pytest-asyncio` as a dev dependency in `pyproject.toml` via `uv add --group dev pytest-asyncio`
+- [x] T001 Create auth subpackage directory with `__init__.py` at `src/whoop_mcp_server/auth/__init__.py`
+- [x] T002 Add `tenacity` as a runtime dependency in `pyproject.toml` via `uv add tenacity`
+- [x] T003 [P] Create test subdirectories `tests/unit/` and `tests/integration/` with `__init__.py` files
+- [x] T004 [P] Add `pytest-asyncio` as a dev dependency in `pyproject.toml` via `uv add --group dev pytest-asyncio`
 
 ---
 
@@ -38,17 +38,17 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T005 [P] Write unit tests for WhoopCredentials (init, repr redaction of client_secret) and TokenPair (init, validation, repr redaction of tokens, expiry check) in `tests/unit/test_models.py`
-- [ ] T006 [P] Write unit tests for AuthenticationError (message, status_code, no secrets in str) and TransientError (message, status_code, attempts, no secrets in str) in `tests/unit/test_errors.py`
-- [ ] T007 [P] Write unit tests for MemoryTokenStore (save/load round-trip, load returns None when empty) in `tests/unit/test_token_store.py`
+- [x] T005 [P] Write unit tests for WhoopCredentials (init, repr redaction of client_secret) and TokenPair (init, validation, repr redaction of tokens, expiry check) in `tests/unit/test_models.py`
+- [x] T006 [P] Write unit tests for AuthenticationError (message, status_code, no secrets in str) and TransientError (message, status_code, attempts, no secrets in str) in `tests/unit/test_errors.py`
+- [x] T007 [P] Write unit tests for MemoryTokenStore (save/load round-trip, load returns None when empty) in `tests/unit/test_token_store.py`
 
 ### Implementation for Foundational
 
-- [ ] T008 [P] Implement WhoopCredentials and TokenPair dataclasses in `src/whoop_mcp_server/auth/models.py` — WhoopCredentials(client_id, client_secret) with masked `__repr__`; TokenPair(access_token, refresh_token, expires_at, scope, token_type) with validation rules and masked `__repr__` per data-model.md
-- [ ] T009 [P] Implement AuthenticationError and TransientError in `src/whoop_mcp_server/auth/errors.py` — AuthenticationError(message, status_code); TransientError(message, status_code, attempts); both with `__str__` that never exposes secrets per contracts/token-manager-api.md
-- [ ] T010 [P] Implement TokenStore protocol (`@runtime_checkable`) and MemoryTokenStore in `src/whoop_mcp_server/auth/token_store.py` — Protocol with `async save(data: dict)` and `async load() -> dict | None`; MemoryTokenStore stores in `_data` attribute per data-model.md
-- [ ] T011 Wire up public exports in `src/whoop_mcp_server/auth/__init__.py` — export TokenManager, WhoopCredentials, TokenPair, TokenStore, MemoryTokenStore, AuthenticationError, TransientError (TokenManager will be a lazy/forward reference until Phase 3)
-- [ ] T012 Verify foundational tests pass: `uv run pytest tests/unit/test_models.py tests/unit/test_errors.py tests/unit/test_token_store.py -v`
+- [x] T008 [P] Implement WhoopCredentials and TokenPair dataclasses in `src/whoop_mcp_server/auth/models.py` — WhoopCredentials(client_id, client_secret) with masked `__repr__`; TokenPair(access_token, refresh_token, expires_at, scope, token_type) with validation rules and masked `__repr__` per data-model.md
+- [x] T009 [P] Implement AuthenticationError and TransientError in `src/whoop_mcp_server/auth/errors.py` — AuthenticationError(message, status_code); TransientError(message, status_code, attempts); both with `__str__` that never exposes secrets per contracts/token-manager-api.md
+- [x] T010 [P] Implement TokenStore protocol (`@runtime_checkable`) and MemoryTokenStore in `src/whoop_mcp_server/auth/token_store.py` — Protocol with `async save(data: dict)` and `async load() -> dict | None`; MemoryTokenStore stores in `_data` attribute per data-model.md
+- [x] T011 Wire up public exports in `src/whoop_mcp_server/auth/__init__.py` — export TokenManager, WhoopCredentials, TokenPair, TokenStore, MemoryTokenStore, AuthenticationError, TransientError (TokenManager will be a lazy/forward reference until Phase 3)
+- [x] T012 Verify foundational tests pass: `uv run pytest tests/unit/test_models.py tests/unit/test_errors.py tests/unit/test_token_store.py -v`
 
 **Checkpoint**: Models, errors, and store protocol are complete and tested. User story implementation can begin.
 
@@ -64,12 +64,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T013 [US1] Write unit tests for `exchange_code()` in `tests/unit/test_token_manager.py` — test cases: (1) valid code stores tokens and calls store.save(), (2) invalid code (4xx) raises AuthenticationError with no state change, (3) network error after 3 retries raises TransientError, (4) credentials sent as POST body not Basic Auth, (5) content type is application/x-www-form-urlencoded. Use httpx mock transport.
+- [x] T013 [US1] Write unit tests for `exchange_code()` in `tests/unit/test_token_manager.py` — test cases: (1) valid code stores tokens and calls store.save(), (2) invalid code (4xx) raises AuthenticationError with no state change, (3) network error after 3 retries raises TransientError, (4) credentials sent as POST body not Basic Auth, (5) content type is application/x-www-form-urlencoded. Use httpx mock transport.
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Implement TokenManager constructor and `exchange_code()` in `src/whoop_mcp_server/auth/token_manager.py` — constructor accepts (credentials: WhoopCredentials, store: TokenStore | None, client: httpx.AsyncClient | None, refresh_buffer_seconds: int = 300); tracks `_owns_client` flag for lifecycle; `exchange_code(code, redirect_uri)` POSTs to `https://api.prod.whoop.com/oauth/oauth2/token` with grant_type=authorization_code, parses response into TokenPair, calls store.save(); uses tenacity retry (3 attempts, 1s/2s/4s backoff, retry on TransportError and 5xx only) per research.md R3/R6
-- [ ] T015 [US1] Verify US1 tests pass: `uv run pytest tests/unit/test_token_manager.py -k exchange -v`
+- [x] T014 [US1] Implement TokenManager constructor and `exchange_code()` in `src/whoop_mcp_server/auth/token_manager.py` — constructor accepts (credentials: WhoopCredentials, store: TokenStore | None, client: httpx.AsyncClient | None, refresh_buffer_seconds: int = 300); tracks `_owns_client` flag for lifecycle; `exchange_code(code, redirect_uri)` POSTs to `https://api.prod.whoop.com/oauth/oauth2/token` with grant_type=authorization_code, parses response into TokenPair, calls store.save(); uses tenacity retry (3 attempts, 1s/2s/4s backoff, retry on TransportError and 5xx only) per research.md R3/R6
+- [x] T015 [US1] Verify US1 tests pass: `uv run pytest tests/unit/test_token_manager.py -k exchange -v`
 
 **Checkpoint**: Token exchange works. A developer can obtain tokens from an authorization code.
 
@@ -85,12 +85,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T016 [US2] Write unit tests for `get_valid_token()` in `tests/unit/test_token_manager.py` — test cases: (1) valid token returned immediately without network call, (2) token within refresh buffer triggers refresh then returns new token, (3) expired token triggers refresh then returns new token, (4) no tokens loaded raises AuthenticationError, (5) refresh fails with revoked token (4xx) raises AuthenticationError, (6) refresh fails after 3 retries raises TransientError with attempts count, (7) store.save() called after successful refresh, (8) refresh sends client_id/client_secret in POST body with offline scope, (9) refresh response that omits refresh_token raises AuthenticationError (WHOOP contract requires both tokens when offline scope used). Use httpx mock transport.
+- [x] T016 [US2] Write unit tests for `get_valid_token()` in `tests/unit/test_token_manager.py` — test cases: (1) valid token returned immediately without network call, (2) token within refresh buffer triggers refresh then returns new token, (3) expired token triggers refresh then returns new token, (4) no tokens loaded raises AuthenticationError, (5) refresh fails with revoked token (4xx) raises AuthenticationError, (6) refresh fails after 3 retries raises TransientError with attempts count, (7) store.save() called after successful refresh, (8) refresh sends client_id/client_secret in POST body with offline scope, (9) refresh response that omits refresh_token raises AuthenticationError (WHOOP contract requires both tokens when offline scope used). Use httpx mock transport.
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Implement `get_valid_token()` and private `_refresh_token()` in `src/whoop_mcp_server/auth/token_manager.py` — `get_valid_token()` checks `_token_pair` existence, compares `expires_at` against `time.monotonic() + refresh_buffer_seconds`, calls `_refresh_token()` if needed; `_refresh_token()` POSTs grant_type=refresh_token to WHOOP endpoint with tenacity retry, updates `_token_pair` and calls store.save(); implement `aclose()` to close internally-managed httpx client per research.md R2/R4
-- [ ] T018 [US2] Verify US2 tests pass: `uv run pytest tests/unit/test_token_manager.py -k "get_valid or refresh" -v`
+- [x] T017 [US2] Implement `get_valid_token()` and private `_refresh_token()` in `src/whoop_mcp_server/auth/token_manager.py` — `get_valid_token()` checks `_token_pair` existence, compares `expires_at` against `time.monotonic() + refresh_buffer_seconds`, calls `_refresh_token()` if needed; `_refresh_token()` POSTs grant_type=refresh_token to WHOOP endpoint with tenacity retry, updates `_token_pair` and calls store.save(); implement `aclose()` to close internally-managed httpx client per research.md R2/R4
+- [x] T018 [US2] Verify US2 tests pass: `uv run pytest tests/unit/test_token_manager.py -k "get_valid or refresh" -v`
 
 **Checkpoint**: Token retrieval with transparent refresh works. The primary interface is functional.
 
@@ -106,13 +106,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T019 [P] [US3] Write unit tests for concurrent refresh safety in `tests/unit/test_token_manager.py` — test cases: (1) 10 concurrent `get_valid_token()` calls with expired token produce exactly 1 refresh request, (2) all concurrent callers receive the same new access token, (3) refresh failure under concurrency raises error to all waiters without corrupting state
-- [ ] T020 [P] [US3] Write integration test for full token lifecycle in `tests/integration/test_token_refresh_flow.py` — test the complete flow: exchange_code → get_valid_token (valid) → time passes → get_valid_token (triggers refresh) → concurrent get_valid_token (single refresh) → verify token rotation (old tokens never reused). Use httpx mock transport with request counting.
+- [x] T019 [P] [US3] Write unit tests for concurrent refresh safety in `tests/unit/test_token_manager.py` — test cases: (1) 10 concurrent `get_valid_token()` calls with expired token produce exactly 1 refresh request, (2) all concurrent callers receive the same new access token, (3) refresh failure under concurrency raises error to all waiters without corrupting state
+- [x] T020 [P] [US3] Write integration test for full token lifecycle in `tests/integration/test_token_refresh_flow.py` — test the complete flow: exchange_code → get_valid_token (valid) → time passes → get_valid_token (triggers refresh) → concurrent get_valid_token (single refresh) → verify token rotation (old tokens never reused). Use httpx mock transport with request counting.
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Add asyncio.Lock with double-check pattern to `get_valid_token()` in `src/whoop_mcp_server/auth/token_manager.py` — add `_refresh_lock: asyncio.Lock` to constructor; in `get_valid_token()`: check expiry → if needs refresh, acquire lock → re-check expiry (may have been refreshed by another waiter) → refresh if still needed → release lock. Ensure atomic update of both access_token and refresh_token per research.md R1
-- [ ] T022 [US3] Verify US3 tests pass: `uv run pytest tests/unit/test_token_manager.py -k concurrent tests/integration/test_token_refresh_flow.py -v`
+- [x] T021 [US3] Add asyncio.Lock with double-check pattern to `get_valid_token()` in `src/whoop_mcp_server/auth/token_manager.py` — add `_refresh_lock: asyncio.Lock` to constructor; in `get_valid_token()`: check expiry → if needs refresh, acquire lock → re-check expiry (may have been refreshed by another waiter) → refresh if still needed → release lock. Ensure atomic update of both access_token and refresh_token per research.md R1
+- [x] T022 [US3] Verify US3 tests pass: `uv run pytest tests/unit/test_token_manager.py -k concurrent tests/integration/test_token_refresh_flow.py -v`
 
 **Checkpoint**: Concurrent refresh safety verified. Token rotation cannot cause lockouts.
 
@@ -128,12 +128,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T023 [US4] Write unit tests for `from_tokens()` and store loading in `tests/unit/test_token_manager.py` — test cases: (1) `from_tokens()` creates manager with valid tokens, `get_valid_token()` returns access_token without network call, (2) `from_tokens()` with expired token triggers refresh on first `get_valid_token()`, (3) constructor with populated store loads tokens via `store.load()`, (4) constructor with empty store starts unauthenticated, (5) monotonic-to-UTC conversion for store persistence and UTC-to-monotonic on load per data-model.md serialization format
+- [x] T023 [US4] Write unit tests for `from_tokens()` and store loading in `tests/unit/test_token_manager.py` — test cases: (1) `from_tokens()` creates manager with valid tokens, `get_valid_token()` returns access_token without network call, (2) `from_tokens()` with expired token triggers refresh on first `get_valid_token()`, (3) constructor with populated store loads tokens via `store.load()`, (4) constructor with empty store starts unauthenticated, (5) monotonic-to-UTC conversion for store persistence and UTC-to-monotonic on load per data-model.md serialization format
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Implement `from_tokens()` classmethod and lazy store loading in `src/whoop_mcp_server/auth/token_manager.py` — `from_tokens(credentials, access_token, refresh_token, expires_in, **kwargs)` computes `expires_at = time.monotonic() + expires_in` and creates TokenPair; add `_store_loaded: bool = False` flag to constructor; in `get_valid_token()`, if `not _store_loaded` and store is set, `await store.load()` and set flag (runs at most once); implement monotonic↔UTC conversion helpers for store serialization per research.md R4 and data-model.md
-- [ ] T025 [US4] Verify US4 tests pass: `uv run pytest tests/unit/test_token_manager.py -k from_tokens -v`
+- [x] T024 [US4] Implement `from_tokens()` classmethod and lazy store loading in `src/whoop_mcp_server/auth/token_manager.py` — `from_tokens(credentials, access_token, refresh_token, expires_in, **kwargs)` computes `expires_at = time.monotonic() + expires_in` and creates TokenPair; add `_store_loaded: bool = False` flag to constructor; in `get_valid_token()`, if `not _store_loaded` and store is set, `await store.load()` and set flag (runs at most once); implement monotonic↔UTC conversion helpers for store serialization per research.md R4 and data-model.md
+- [x] T025 [US4] Verify US4 tests pass: `uv run pytest tests/unit/test_token_manager.py -k from_tokens -v`
 
 **Checkpoint**: All four user stories complete. Manager can be initialized from code exchange, pre-existing tokens, or persistent store.
 
@@ -143,11 +143,11 @@
 
 **Purpose**: Validate the complete implementation across all stories
 
-- [ ] T026 Run full test suite: `uv run pytest tests/ -v --tb=short`
-- [ ] T027 Run linting: `uv run ruff check src/whoop_mcp_server/auth/ tests/unit/ tests/integration/`
-- [ ] T028 Run type checking: `uv run ty check src/whoop_mcp_server/auth/`
-- [ ] T029 Finalize `src/whoop_mcp_server/auth/__init__.py` exports — ensure all public symbols (TokenManager, WhoopCredentials, TokenPair, TokenStore, MemoryTokenStore, AuthenticationError, TransientError) are exported and match contracts/token-manager-api.md
-- [ ] T030 Validate quickstart.md code examples — run setup commands (`uv sync`, `uv run pytest tests/`, `uv run ruff check src/`) and verify they work
+- [x] T026 Run full test suite: `uv run pytest tests/ -v --tb=short`
+- [x] T027 Run linting: `uv run ruff check src/whoop_mcp_server/auth/ tests/unit/ tests/integration/`
+- [x] T028 Run type checking: `uv run ty check src/whoop_mcp_server/auth/`
+- [x] T029 Finalize `src/whoop_mcp_server/auth/__init__.py` exports — ensure all public symbols (TokenManager, WhoopCredentials, TokenPair, TokenStore, MemoryTokenStore, AuthenticationError, TransientError) are exported and match contracts/token-manager-api.md
+- [x] T030 Validate quickstart.md code examples — run setup commands (`uv sync`, `uv run pytest tests/`, `uv run ruff check src/`) and verify they work
 
 ---
 
