@@ -107,14 +107,18 @@ class TestTokenRefreshFlow:
 
         # Step 3: Simulate time passing — token now within refresh buffer
         # 1 min left but buffer is 5 min — triggers refresh
-        manager._token_pair.expires_at = time.monotonic() + 60
+        manager._token_pair = manager._token_pair.model_copy(
+            update={"expires_at": time.monotonic() + 60}
+        )
 
         token = await manager.get_valid_token()
         assert token == "refreshed-access-token"
         assert tracker.refresh_count == 1
 
         # Step 4: Simulate token expired again for concurrent refresh test
-        manager._token_pair.expires_at = time.monotonic() - 10
+        manager._token_pair = manager._token_pair.model_copy(
+            update={"expires_at": time.monotonic() - 10}
+        )
 
         # Step 5: Concurrent get_valid_token calls — should produce only 1 refresh
         results = await asyncio.gather(
