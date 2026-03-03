@@ -234,7 +234,9 @@ class TestGetValidToken:
             refresh_buffer_seconds=0,
         )
         # Fix: manually set expires_at to the past
-        manager._token_pair.expires_at = time.monotonic() - 10
+        manager._token_pair = manager._token_pair.model_copy(
+            update={"expires_at": time.monotonic() - 10}
+        )
 
         token = await manager.get_valid_token()
         assert token == "refreshed-access-token"
@@ -268,7 +270,9 @@ class TestGetValidToken:
             client=client,
             refresh_buffer_seconds=0,
         )
-        manager._token_pair.expires_at = time.monotonic() - 10
+        manager._token_pair = manager._token_pair.model_copy(
+            update={"expires_at": time.monotonic() - 10}
+        )
 
         with pytest.raises(AuthenticationError) as exc_info:
             await manager.get_valid_token()
@@ -291,7 +295,9 @@ class TestGetValidToken:
             client=client,
             refresh_buffer_seconds=0,
         )
-        manager._token_pair.expires_at = time.monotonic() - 10
+        manager._token_pair = manager._token_pair.model_copy(
+            update={"expires_at": time.monotonic() - 10}
+        )
 
         with pytest.raises(TransientError) as exc_info:
             await manager.get_valid_token()
@@ -314,7 +320,9 @@ class TestGetValidToken:
             client=client,
             refresh_buffer_seconds=0,
         )
-        manager._token_pair.expires_at = time.monotonic() - 10
+        manager._token_pair = manager._token_pair.model_copy(
+            update={"expires_at": time.monotonic() - 10}
+        )
 
         await manager.get_valid_token()
 
@@ -339,7 +347,9 @@ class TestGetValidToken:
             client=client,
             refresh_buffer_seconds=0,
         )
-        manager._token_pair.expires_at = time.monotonic() - 10
+        manager._token_pair = manager._token_pair.model_copy(
+            update={"expires_at": time.monotonic() - 10}
+        )
 
         await manager.get_valid_token()
 
@@ -372,7 +382,9 @@ class TestGetValidToken:
             client=client,
             refresh_buffer_seconds=0,
         )
-        manager._token_pair.expires_at = time.monotonic() - 10
+        manager._token_pair = manager._token_pair.model_copy(
+            update={"expires_at": time.monotonic() - 10}
+        )
 
         with pytest.raises(AuthenticationError, match="refresh_token"):
             await manager.get_valid_token()
@@ -400,7 +412,9 @@ class TestConcurrentRefresh:
             client=client,
             refresh_buffer_seconds=0,
         )
-        manager._token_pair.expires_at = time.monotonic() - 10
+        manager._token_pair = manager._token_pair.model_copy(
+            update={"expires_at": time.monotonic() - 10}
+        )
 
         # Launch 10 concurrent get_valid_token calls
         results = await asyncio.gather(
@@ -427,7 +441,9 @@ class TestConcurrentRefresh:
             client=client,
             refresh_buffer_seconds=0,
         )
-        manager._token_pair.expires_at = time.monotonic() - 10
+        manager._token_pair = manager._token_pair.model_copy(
+            update={"expires_at": time.monotonic() - 10}
+        )
 
         results = await asyncio.gather(
             *[manager.get_valid_token() for _ in range(10)]
@@ -454,7 +470,9 @@ class TestConcurrentRefresh:
             client=client,
             refresh_buffer_seconds=0,
         )
-        manager._token_pair.expires_at = time.monotonic() - 10
+        manager._token_pair = manager._token_pair.model_copy(
+            update={"expires_at": time.monotonic() - 10}
+        )
 
         results = await asyncio.gather(
             *[manager.get_valid_token() for _ in range(5)],
@@ -507,7 +525,9 @@ class TestFromTokens:
             client=client,
             refresh_buffer_seconds=0,
         )
-        manager._token_pair.expires_at = time.monotonic() - 10
+        manager._token_pair = manager._token_pair.model_copy(
+            update={"expires_at": time.monotonic() - 10}
+        )
 
         token = await manager.get_valid_token()
         assert token == "refreshed-access-token"

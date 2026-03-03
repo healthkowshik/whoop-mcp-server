@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import time
-from datetime import datetime, timezone
 
 import httpx
 from tenacity import (
@@ -15,7 +14,7 @@ from tenacity import (
 )
 
 from whoop_mcp_server.auth.errors import AuthenticationError, TransientError
-from whoop_mcp_server.auth.models import TokenPair, WhoopCredentials
+from whoop_mcp_server.auth.models import TokenPair, TokenResponse, WhoopCredentials
 from whoop_mcp_server.auth.token_store import MemoryTokenStore, TokenStore
 
 WHOOP_TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token"
@@ -164,25 +163,8 @@ class TokenManager:
         if data is None:
             return
 
-        # Convert UTC expiry back to monotonic-relative
-        expires_at_utc_str = data.get("expires_at_utc")
-        if expires_at_utc_str:
-            expires_dt = datetime.fromisoformat(expires_at_utc_str)
-            remaining = (
-                expires_dt - datetime.now(timezone.utc)
-            ).total_seconds()
-            expires_at = time.monotonic() + remaining
-        else:
-            expires_at = time.monotonic()  # Treat as expired
-
         try:
-            self._token_pair = TokenPair(
-                access_token=data["access_token"],
-                refresh_token=data["refresh_token"],
-                expires_at=max(expires_at, 0.01),  # Ensure positive
-                scope=data.get("scope", ""),
-                token_type=data.get("token_type", "bearer"),
-            )
+            self._token_pair = TokenPair.from_store_dict(data)
         except (KeyError, ValueError):
             # Corrupted store data — start unauthenticated
             self._token_pair = None
@@ -249,31 +231,13 @@ class TokenManager:
 
     def _parse_token_response(self, data: dict) -> TokenPair:
         """Parse a WHOOP token endpoint response into a TokenPair."""
-        return TokenPair(
-            access_token=data["access_token"],
-            refresh_token=data["refresh_token"],
-            expires_at=time.monotonic() + data["expires_in"],
-            scope=data.get("scope", ""),
-            token_type=data.get("token_type", "bearer"),
-        )
+        return TokenResponse.model_validate(data).to_token_pair()
 
     async def _save_to_store(self) -> None:
         """Persist the current token pair to the store."""
         if self._token_pair is None:
             return
-        # Convert monotonic expires_at to absolute UTC for portability
-        remaining = self._token_pair.expires_at - time.monotonic()
-        expires_at_utc = datetime.now(timezone.utc).timestamp() + remaining
-        dt = datetime.fromtimestamp(expires_at_utc, tz=timezone.utc)
-
-        data = {
-            "access_token": self._token_pair.access_token,
-            "refresh_token": self._token_pair.refresh_token,
-            "expires_at_utc": dt.isoformat(),
-            "scope": self._token_pair.scope,
-            "token_type": self._token_pair.token_type,
-        }
-        await self._store.save(data)
+        await self._store.save(self._token_pair.to_store_dict())
 
     async def aclose(self) -> None:
         """Close the internally-managed httpx client.
