@@ -5,6 +5,12 @@
 **Status**: Draft
 **Input**: User description: "Use Pydantic Validation"
 
+## Clarifications
+
+### Session 2026-03-03
+
+- Q: Should TokenPair also be immutable (frozen), like WhoopCredentials? → A: Both immutable (frozen) — WhoopCredentials and TokenPair. Test code that mutates fields is adapted.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Validate Token Data at Construction (Priority: P1)
@@ -75,13 +81,13 @@ When the token manager receives a JSON response from WHOOP's token endpoint, the
 - **FR-006**: System MUST coerce compatible types (e.g., numeric strings to integers for `expires_in`) rather than rejecting them, while still rejecting truly incompatible types (e.g., a list where a string is expected).
 - **FR-007**: System MUST ignore unknown fields when deserializing from a store dictionary or API response (forward compatibility).
 - **FR-008**: System MUST maintain the same public API surface as the current implementation — all existing callers of `WhoopCredentials`, `TokenPair`, and `TokenManager` MUST continue to work without modification (backward compatibility).
-- **FR-009**: System MUST preserve immutability of credential objects — once constructed, credential fields cannot be modified.
+- **FR-009**: System MUST preserve immutability of all model objects (credentials and tokens) — once constructed, fields cannot be modified. Existing code that mutates token fields in tests MUST be adapted to create new objects instead.
 - **FR-010**: System MUST maintain the `is_expired(buffer_seconds)` method on token objects with identical behavior to the current implementation.
 
 ### Key Entities
 
 - **WhoopCredentials**: OAuth client credentials (client_id, client_secret). Immutable. Secret values always masked in string output.
-- **TokenPair**: Current authentication state (access_token, refresh_token, expires_at, scope, token_type). Validated at construction. Supports serialization to/from store dictionaries with monotonic↔UTC time conversion.
+- **TokenPair**: Current authentication state (access_token, refresh_token, expires_at, scope, token_type). Immutable. Validated at construction. Supports serialization to/from store dictionaries with monotonic↔UTC time conversion.
 - **TokenResponse**: Intermediate representation of a WHOOP token endpoint response (access_token, refresh_token, expires_in, scope, token_type). Validates the raw API response and computes `expires_at` from `expires_in`.
 
 ## Success Criteria *(mandatory)*
